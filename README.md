@@ -4,9 +4,7 @@
   <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=26&pause=1200&color=FF6B6B&center=true&vCenter=true&width=800&lines=Welcome+to+the+Medicine+Sales+Dashboard;Analyze+Quarterly+%26+Branch+Performance;Discover+Top+Categories+and+Products;Turn+Data+into+Business+Decisions" alt="Typing SVG" />
 </div>
 
-<p align="center">
-  <img src="https://api.visitorbadge.io/api/VisitorHit?user=SaikatDash&repo=Medicine-Sales-Dashboard&label=VISITORS&countColor=%23ba68c8&style=flat-square" />
-</p>
+
 
 ## ✨ Premium Project Badge Suite
 <div align="center">
@@ -17,7 +15,9 @@
 [![Pandas](https://img.shields.io/badge/Pandas-150458?style=for-the-badge&logo=pandas&logoColor=white)](https://pandas.pydata.org/)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/SaikatDash/Medicine-Sales-Dashboard?style=for-the-badge)](https://github.com/SaikatDash/Medicine-Sales-Dashboard/stargazers)
-
+<p align="center">
+  <img src="https://api.visitorbadge.io/api/VisitorHit?user=SaikatDash&repo=Medicine-Sales-Dashboard&label=VISITORS&countColor=%23ba68c8&style=flat-square" />
+</p>
 </div>
 
 ---
