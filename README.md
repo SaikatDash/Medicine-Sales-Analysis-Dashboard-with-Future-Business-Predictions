@@ -1,4 +1,3 @@
-text
 # 💊 Medicine Sales Analysis Dashboard
 
 ## ✨ Premium Project Badge Suite
@@ -20,10 +19,10 @@ text
 **Medicine Sales Analysis Dashboard** is a **production-ready Streamlit application** that transforms pharmaceutical sales data into **interactive, animated visualizations** and **actionable business insights**.
 
 Perfect for:
-- 🏥 **Hospital Chains** - Branch performance tracking  
-- 💼 **Pharma Distributors** - Product category insights  
-- 📊 **Finance Teams** - Revenue & credit note analysis  
-- 🎯 **Management** - Quarter-on-Quarter growth trends  
+- 🏥 **Hospital Chains** – Branch performance tracking  
+- 💼 **Pharma Distributors** – Product category insights  
+- 📊 **Finance Teams** – Revenue & credit note analysis  
+- 🎯 **Management** – Quarter-on-Quarter growth trends  
 
 ---
 
@@ -49,34 +48,8 @@ Perfect for:
 
 ## ⚡ Quick Start (5 Minutes)
 
-### 1️⃣ **Clone Repository**
+### 1️⃣ Clone Repository
 ```bash
 git clone https://github.com/SaikatDash/Medicine-Sales-Dashboard.git
 cd Medicine-Sales-Dashboard
-2️⃣ Install Dependencies
-bash
-pip install streamlit pandas plotly openpyxl
-3️⃣ Run the App
-bash
-streamlit run front.py
-✨ Dashboard opens in your browser at http://localhost:8501
 
-🎬 Live Feature Preview
-<details open> <summary><b>📱 Frontend Layout (Click to Expand)</b></summary>
-text
-┌─────────────────────────────────────────────────────────┐
-│                    💊 ANALYTICAL DASHBOARD             │
-│                                                         │
-│  ┌──────────────────┐  ┌─────────────────────────────┐ │
-│  │ 🧭 NAVIGATION   │  │  📊 DYNAMIC CONTENT         │ │
-│  │                 │  │                             │ │
-│  │  -  Comparison   │  │  -  Interactive charts       │ │
-│  │  -  Business     │  │  -  Filters & controls       │ │
-│  │  -  Branch       │  │  -  Auto-generated insights  │ │
-│  │  -  Category     │  │                             │ │
-│  │  -  Product-Month│  │  Peak Sales: Mar 2024       │ │
-│  │  -  Credit Notes │  │  Value: ₹2,45,67,890        │ │
-│  └──────────────────┘  └─────────────────────────────┘ │
-│                                                         │
-└─────────────────────────────────────────────────────────┘
-</details> ```
