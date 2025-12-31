@@ -1,13 +1,12 @@
 # 💊 Medicine Sales Analysis Dashboard
-<!-- ANIMATED HEADER WITH TYPING EFFECT -->
-<div align="center">
-  <img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&size=28&duration=3000&pause=1000&color=FF6B6B&center=true&vCenter=true&width=800&lines=💊+Medicine+Sales+Analytics;📊+Interactive+Dashboards;🔮+Business+Intelligence;🚀+Pharma+Business+Growth" alt="Typing Animation" />
-</div>
 
 <div align="center">
   <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=26&pause=1200&color=FF6B6B&center=true&vCenter=true&width=800&lines=Welcome+to+the+Medicine+Sales+Dashboard;Analyze+Quarterly+%26+Branch+Performance;Discover+Top+Categories+and+Products;Turn+Data+into+Business+Decisions" alt="Typing SVG" />
 </div>
 
+<p align="center">
+  <img src="https://api.visitorbadge.io/api/VisitorHit?user=SaikatDash&repo=Medicine-Sales-Dashboard&label=VISITORS&countColor=%23ba68c8&style=flat-square" />
+</p>
 
 ## ✨ Premium Project Badge Suite
 <div align="center">
@@ -99,8 +98,5 @@ text
 │                                                         │
 └─────────────────────────────────────────────────────────┘
 </details> ```
-<p align="center">
-  <img src="https://api.visitorbadge.io/api/VisitorHit?user=SaikatDash&repo=Medicine-Sales-Dashboard&label=VISITORS&countColor=%23ba68c8&style=flat-square" />
-</p>
 
 
