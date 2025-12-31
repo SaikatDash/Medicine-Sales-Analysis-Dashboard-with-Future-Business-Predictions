@@ -52,4 +52,30 @@ Perfect for:
 ```bash
 git clone https://github.com/SaikatDash/Medicine-Sales-Dashboard.git
 cd Medicine-Sales-Dashboard
+2️⃣ Install Dependencies
+bash
+pip install streamlit pandas plotly openpyxl
+3️⃣ Run the App
+bash
+streamlit run front.py
+✨ Dashboard opens in your browser at http://localhost:8501
 
+🎬 Live Feature Preview
+<details open> <summary><b>📱 Frontend Layout (Click to Expand)</b></summary>
+text
+┌─────────────────────────────────────────────────────────┐
+│                    💊 ANALYTICAL DASHBOARD             │
+│                                                         │
+│  ┌──────────────────┐  ┌─────────────────────────────┐ │
+│  │ 🧭 NAVIGATION   │  │  📊 DYNAMIC CONTENT         │ │
+│  │                 │  │                             │ │
+│  │  -  Comparison   │  │  -  Interactive charts       │ │
+│  │  -  Business     │  │  -  Filters & controls       │ │
+│  │  -  Branch       │  │  -  Auto-generated insights  │ │
+│  │  -  Category     │  │                             │ │
+│  │  -  Product-Month│  │  Peak Sales: Mar 2024       │ │
+│  │  -  Credit Notes │  │  Value: ₹2,45,67,890        │ │
+│  └──────────────────┘  └─────────────────────────────┘ │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+</details> ```
