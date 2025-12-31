@@ -18,7 +18,6 @@
 
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/your-username/Medicine-Sales-Dashboard?style=for-the-badge)](⭐)
-[![Status](https://img.shields.io/badge/Status-Active-success?style=for-the-badge)](✅)
 
 </div>
 
