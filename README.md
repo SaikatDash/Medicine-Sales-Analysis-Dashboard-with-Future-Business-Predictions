@@ -9,10 +9,11 @@
 ## ✨ Premium Project Badge Suite
 <div align="center">
 
-[![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
-[![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://streamlit.io/)
-[![Plotly](https://img.shields.io/badge/Plotly-3F4F75?style=for-the-badge&logo=plotly&logoColor=white)](https://plotly.com/)
-[![Pandas](https://img.shields.io/badge/Pandas-150458?style=for-the-badge&logo=pandas&logoColor=white)](https://pandas.pydata.org/)
+<p align="center">
+  <img src="https://img.shields.io/badge/Backend-Python%20%7C%20Pandas-3776AB?style=for-the-badge&logo=python&logoColor=white" />
+  <img src="https://img.shields.io/badge/Dashboard-Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white" />
+  <img src="https://img.shields.io/badge/Charts-Plotly-3F4F75?style=for-the-badge&logo=plotly&logoColor=white" />
+</p>
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/SaikatDash/Medicine-Sales-Dashboard?style=for-the-badge)](https://github.com/SaikatDash/Medicine-Sales-Dashboard/stargazers)
 <p align="center">
@@ -23,11 +24,7 @@
   <a href="https://medicine-sales-demo-link">
     <img src="https://img.shields.io/badge/🚀_LIVE_DEMO-CLICK_HERE-ff6b6b?style=for-the-badge" alt="Live Demo" />
   </a>
-<p align="center">
-  <img src="https://img.shields.io/badge/Backend-Python%20%7C%20Pandas-3776AB?style=for-the-badge&logo=python&logoColor=white" />
-  <img src="https://img.shields.io/badge/Dashboard-Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white" />
-  <img src="https://img.shields.io/badge/Charts-Plotly-3F4F75?style=for-the-badge&logo=plotly&logoColor=white" />
-</p>
+
 
 ---
 
