@@ -19,6 +19,11 @@
   <img src="https://api.visitorbadge.io/api/VisitorHit?user=SaikatDash&repo=Medicine-Sales-Dashboard&label=VISITORS&countColor=%23ba68c8&style=flat-square" />
 </p>
 </div>
+<p align="center">
+  <a href="https://medicine-sales-demo-link">
+    <img src="https://img.shields.io/badge/🚀_LIVE_DEMO-CLICK_HERE-ff6b6b?style=for-the-badge" alt="Live Demo" />
+  </a>
+</p>
 
 ---
 
@@ -71,19 +76,6 @@ text
 streamlit run front.py
 
 text
-
-
-***
-
-## 5️⃣ Pulsing Call‑to‑Action Button (HTML + CSS trick)
-
-GitHub supports basic inline CSS via `<img>`/`<a>`; you can fake a button:
-<p align="center">
-  <a href="https://medicine-sales-demo-link">
-    <img src="https://img.shields.io/badge/🚀_LIVE_DEMO-CLICK_HERE-ff6b6b?style=for-the-badge" alt="Live Demo" />
-  </a>
-</p>
-
 
 ✨ **Dashboard opens in your browser at** `http://localhost:8501`
 
