@@ -17,7 +17,7 @@
 [![Pandas](https://img.shields.io/badge/Pandas-150458?style=for-the-badge&logo=pandas&logoColor=white)](https://pandas.pydata.org/)
 
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
-[![Stars](https://img.shields.io/github/stars/your-username/Medicine-Sales-Dashboard?style=for-the-badge)](⭐)
+[![Stars](https://img.shields.io/github/stars/SaikatDash/Medicine-Sales-Dashboard?style=for-the-badge)](⭐)
 
 </div>
 
