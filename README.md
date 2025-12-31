@@ -55,7 +55,7 @@ cd Medicine-Sales-Dashboard
 text
 
 ### 2️⃣ Install Dependencies
-pip install streamlit pandas plotly openpyxl
+pip install streamlit pandas plotly
 
 text
 
