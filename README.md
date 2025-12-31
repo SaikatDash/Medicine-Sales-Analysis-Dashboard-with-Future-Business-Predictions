@@ -1,10 +1,5 @@
 # 💊 Medicine Sales Analysis Dashboard
 
-<!-- ANIMATED HEADER WITH TYPING EFFECT -->
-<div align="center">
-  <img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&size=28&duration=3000&pause=1000&color=FF6B6B&center=true&vCenter=true&width=800&lines=💊+Medicine+Sales+Analytics;📊+Interactive+Dashboards;🔮+Business+Intelligence;🚀+Pharma+Business+Growth" alt="Typing Animation" />
-</div>
-
 ## ✨ Premium Project Badge Suite
 <div align="center">
 
@@ -54,19 +49,33 @@ Perfect for:
 ## ⚡ Quick Start (5 Minutes)
 
 ### 1️⃣ Clone Repository
+```bash
 git clone https://github.com/SaikatDash/Medicine-Sales-Dashboard.git
 cd Medicine-Sales-Dashboard
-
-text
-
-### 2️⃣ Install Dependencies
+2️⃣ Install Dependencies
+bash
 pip install streamlit pandas plotly openpyxl
-
-text
-
-### 3️⃣ Run the App
+3️⃣ Run the App
+bash
 streamlit run front.py
+✨ Dashboard opens in your browser at http://localhost:8501
 
+🎬 Live Feature Preview
+<details open> <summary><b>📱 Frontend Layout (Click to Expand)</b></summary>
 text
-
-✨ **Dashboard opens in your browser at** `http://localhost:8501`
+┌─────────────────────────────────────────────────────────┐
+│                    💊 ANALYTICAL DASHBOARD             │
+│                                                         │
+│  ┌──────────────────┐  ┌─────────────────────────────┐ │
+│  │ 🧭 NAVIGATION   │  │  📊 DYNAMIC CONTENT         │ │
+│  │                 │  │                             │ │
+│  │  - Comparison   │  │  - Interactive charts       │ │
+│  │  - Business     │  │  - Filters & controls       │ │
+│  │  - Branch       │  │  - Auto-generated insights  │ │
+│  │  - Category     │  │                             │ │
+│  │  - Product-Month│  │  Peak Sales: Mar 2024       │ │
+│  │  - Credit Notes │  │  Value: ₹2,45,67,890        │ │
+│  └──────────────────┘  └─────────────────────────────┘ │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+</details> ```
