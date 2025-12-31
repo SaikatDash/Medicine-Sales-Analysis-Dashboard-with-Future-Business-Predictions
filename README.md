@@ -24,6 +24,10 @@
     <img src="https://img.shields.io/badge/🚀_LIVE_DEMO-CLICK_HERE-ff6b6b?style=for-the-badge" alt="Live Demo" />
   </a>
 </p>
+<p align="center">
+  <img src="https://github-readme-stats.vercel.app/api/pin/?username=SaikatDash&repo=Medicine-Sales-Dashboard&theme=radical" />
+</p>
+
 
 ---
 
