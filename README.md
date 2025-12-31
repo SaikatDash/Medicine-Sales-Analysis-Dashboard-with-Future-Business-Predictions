@@ -14,8 +14,6 @@
   <img src="https://img.shields.io/badge/Dashboard-Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white" />
   <img src="https://img.shields.io/badge/Charts-Plotly-3F4F75?style=for-the-badge&logo=plotly&logoColor=white" />
 </p>
-[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
-[![Stars](https://img.shields.io/github/stars/SaikatDash/Medicine-Sales-Dashboard?style=for-the-badge)](https://github.com/SaikatDash/Medicine-Sales-Dashboard/stargazers)
 <p align="center">
   <img src="https://api.visitorbadge.io/api/VisitorHit?user=SaikatDash&repo=Medicine-Sales-Dashboard&label=VISITORS&countColor=%23ba68c8&style=flat-square" />
 </p>
