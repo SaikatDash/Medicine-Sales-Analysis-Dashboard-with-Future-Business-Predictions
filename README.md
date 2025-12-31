@@ -23,11 +23,11 @@
   <a href="https://medicine-sales-demo-link">
     <img src="https://img.shields.io/badge/🚀_LIVE_DEMO-CLICK_HERE-ff6b6b?style=for-the-badge" alt="Live Demo" />
   </a>
-</p>
 <p align="center">
-  <img src="https://github-readme-stats.vercel.app/api/pin/?username=SaikatDash&repo=Medicine-Sales-Dashboard&theme=radical" />
+  <img src="https://img.shields.io/badge/Backend-Python%20%7C%20Pandas-3776AB?style=for-the-badge&logo=python&logoColor=white" />
+  <img src="https://img.shields.io/badge/Dashboard-Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white" />
+  <img src="https://img.shields.io/badge/Charts-Plotly-3F4F75?style=for-the-badge&logo=plotly&logoColor=white" />
 </p>
-
 
 ---
 
