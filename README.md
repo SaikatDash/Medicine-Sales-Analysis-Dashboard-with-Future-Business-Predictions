@@ -1,4 +1,9 @@
 # 💊 Medicine Sales Analysis Dashboard
+<!-- ANIMATED HEADER WITH TYPING EFFECT -->
+<div align="center">
+  <img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&size=28&duration=3000&pause=1000&color=FF6B6B&center=true&vCenter=true&width=800&lines=💊+Medicine+Sales+Analytics;📊+Interactive+Dashboards;🔮+Business+Intelligence;🚀+Pharma+Business+Growth" alt="Typing Animation" />
+</div>
+
 
 ## ✨ Premium Project Badge Suite
 <div align="center">
