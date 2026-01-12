@@ -1,0 +1,11 @@
+Got it. Quick plan: confirm whether add_filter.py is referenced at runtime and point out where its changes appear in sales2.py.
+
+Not imported: add_filter.py is not imported or referenced anywhere in sales2.py. It was a one-time helper script used to modify the file.
+Inline function: The remove_zero_values() function now lives directly in sales2.py (under the “HELPER FUNCTION” section) and is used at runtime.
+Where it’s used:
+Quarter Comparison: Filters compare_chart after grouping on Year and ActAmt.
+Business Analysis: Filters month_act (ActAmt), month_cn (CNAmt), and month_total after TotalAmt is computed.
+Product–Month: Filters agg_df (ActAmt) for both “Month-wise” and “Yearly” views.
+Safe cleanup: Since there’s no runtime dependency on add_filter.py, you can delete that file if you don’t plan to re-run the patching script.
+
+cd "c:\CODE\python projects\sir\Medicine-Sales-Analysis-Dashboard-with-Future-Business-Predictions" ; python add_filter.py
