@@ -4,7 +4,7 @@ import plotly.express as px
 
 
 # ---------- DATA LOAD ----------
-df = pd.read_csv("C:\\CODE\\python projects\\sir\\Sales_Analysis_3\\csv\\Mfg_Sales.csv")
+df = pd.read_csv("csv\Mfg_Sales.csv")
 
 
 df["MMYYYY"] = pd.to_datetime(df["MMYYYY"], format="%Y-%m")
