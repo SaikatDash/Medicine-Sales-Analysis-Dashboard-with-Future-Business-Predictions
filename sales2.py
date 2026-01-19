@@ -12,9 +12,8 @@ COLOR_SEQ = px.colors.qualitative.Bold  # colorful discrete palette [web:16][web
 TEMPLATE = "plotly_dark"               # dark stylish template [web:25]
 
 # ---------- DATA LOAD ----------
-df = pd.read_csv(
-    "C:\\CODE\\python projects\\sir\\Medicine-Sales-Analysis-Dashboard-with-Future-Business-Predictions\\csv\\Mfg_Sales.csv"
-)
+
+df = pd.read_csv("csv/Mfg_Sales.csv")
 
 df["MMYYYY"] = pd.to_datetime(df["MMYYYY"], format="%Y-%m", errors="coerce")
 df = df.dropna(subset=["MMYYYY"])

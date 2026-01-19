@@ -72,7 +72,9 @@ pip install streamlit pandas plotly
 text
 
 ### 3️⃣ Run the App
-streamlit run front.py
+streamlit run sales.py
+or 
+python -m streamlit run sales.py
 
 text
 
@@ -101,6 +103,6 @@ text
 │  └──────────────────┘  └─────────────────────────────┘ │
 │                                                         │
 └─────────────────────────────────────────────────────────┘
-</details> ```
+
 
 
