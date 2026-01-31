@@ -90,6 +90,8 @@ def remove_zero_values(df: pd.DataFrame, column: str) -> pd.DataFrame:
 def display_grid_with_export(data: pd.DataFrame, title: str, key_prefix: str):
     """Display data in grid format with CSV and Excel download options (rounded)."""
 
+    ##st.set_page_config(layout="wide")
+
     st.subheader(title)
 
     # Round numeric columns to 0 decimals for display & export. [web:9][web:26][web:15]
@@ -263,13 +265,18 @@ if st.session_state.page == "business":
 
     month_act = year_df.groupby("Month")["ActAmt"].sum().reset_index()
     month_act = remove_zero_values(month_act, "ActAmt")
+    month_act["Month"] = month_act["Month"].cat.remove_unused_categories() 
+
     month_cn = year_df.groupby("Month")["CNAmt"].sum().reset_index()
     month_cn = remove_zero_values(month_cn, "CNAmt")
+    month_cn["Month"] = month_cn["Month"].cat.remove_unused_categories()
+
     month_total = (
         year_df.groupby("Month")[["ActAmt", "CNAmt"]].sum().reset_index()
     )
     month_total["TotalAmt"] = month_total["ActAmt"] + month_total["CNAmt"]
     month_total = remove_zero_values(month_total, "TotalAmt")
+    month_total["Month"] = month_total["Month"].cat.remove_unused_categories()
 
     st.subheader("Choose Analysis Type")
 
@@ -296,6 +303,8 @@ if st.session_state.page == "business":
             template=TEMPLATE,
         )
         fig.update_traces(text=None)
+        fig.update_layout(bargap=0.1, bargroupgap=0.05)
+        fig.update_traces(width=0.8)
         st.plotly_chart(fig, use_container_width=True)
 
         display_grid_with_export(
@@ -327,6 +336,8 @@ if st.session_state.page == "business":
             template=TEMPLATE,
         )
         fig.update_traces(text=None)
+        fig.update_layout(bargap=0.1, bargroupgap=0.05)
+        fig.update_traces(width=0.8)
         st.plotly_chart(fig, use_container_width=True)
 
         display_grid_with_export(
@@ -358,6 +369,8 @@ if st.session_state.page == "business":
             template=TEMPLATE,
         )
         fig.update_traces(text=None)
+        fig.update_layout(bargap=0.1, bargroupgap=0.05)
+        fig.update_traces(width=0.8)
         st.plotly_chart(fig, use_container_width=True)
 
         display_grid_with_export(
@@ -459,6 +472,9 @@ elif st.session_state.page == "prodmonth":
                     color_discrete_sequence=COLOR_SEQ,
                     template=TEMPLATE,
                 )
+                # fig.update_traces(text=None)
+                # fig.update_layout(bargap=0.1, bargroupgap=0.05)
+                # fig.update_traces(width=0.8)
             elif chart_type == "Line":
                 fig = px.line(
                     agg_df,
@@ -570,6 +586,7 @@ elif st.session_state.page == "branchbusiness":
         title = f"Credit Notes — {selected_branch}"
 
     branch_month = remove_zero_values(branch_month, value_col)
+    branch_month["Month"] = branch_month["Month"].cat.remove_unused_categories()
 
     if not branch_month.empty and branch_month[value_col].sum() > 0:
         if chart_type == "Bar":
@@ -582,6 +599,9 @@ elif st.session_state.page == "branchbusiness":
                 color_discrete_sequence=COLOR_SEQ,
                 template=TEMPLATE,
             )
+            fig.update_traces(text=None)
+            fig.update_layout(bargap=0.1, bargroupgap=0.05)
+            fig.update_traces(width=0.8)
         elif chart_type == "Line":
             fig = px.line(
                 branch_month,
@@ -703,6 +723,7 @@ elif st.session_state.page == "credit":
     if cumulative_view:
         month_fy_plot = month_fy.groupby("Month")[value_col].sum().reset_index()
         month_fy_plot = remove_zero_values(month_fy_plot, value_col)
+        month_fy["Month"] = month_fy["Month"].cat.remove_unused_categories()
         fig = px.bar(
             month_fy_plot,
             x="Month",
@@ -817,6 +838,7 @@ elif st.session_state.page == "branchcomparison":
     if cumulative_view:
         cum_df = month_fy_branch.groupby("Month")[value_col].sum().reset_index()
         cum_df = remove_zero_values(cum_df, value_col)
+        month_fy_branch["Month"] = month_fy_branch["Month"].cat.remove_unused_categories()
 
         fig = px.bar(
             cum_df,
