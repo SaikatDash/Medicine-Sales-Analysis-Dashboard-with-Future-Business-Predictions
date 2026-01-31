@@ -3,9 +3,20 @@ import pandas as pd
 import plotly.express as px
 from io import BytesIO
 import time
+from typing import TYPE_CHECKING
 
-# Disable st_aggrid - use regular dataframe instead
 AGGRID_AVAILABLE = False
+GridOptionsBuilder = None
+AgGrid = None
+
+if TYPE_CHECKING:
+    from st_aggrid import AgGrid, GridOptionsBuilder
+
+try:
+    from st_aggrid import AgGrid, GridOptionsBuilder
+    AGGRID_AVAILABLE = True
+except ImportError:
+    AGGRID_AVAILABLE = False
 
 # ---------- GLOBAL PLOT SETTINGS ----------
 COLOR_SEQ = px.colors.qualitative.Bold  # colorful discrete palette [web:16][web:17]
@@ -15,7 +26,9 @@ TEMPLATE = "plotly_dark"               # dark stylish template [web:25]
 
 df = pd.read_csv("csv/Mfg_Sales.csv")
 
-df["MMYYYY"] = pd.to_datetime(df["MMYYYY"], format="%Y-%m", errors="coerce")
+df["MMYYYY"] = pd.to_datetime(
+    df["MMYYYY"], format="%Y-%m", errors="coerce"
+).astype("datetime64[ns]")
 df = df.dropna(subset=["MMYYYY"])
 df["Year"] = df["MMYYYY"].dt.year
 df["Month"] = df["MMYYYY"].dt.strftime("%B")
@@ -69,13 +82,10 @@ fy_labels = [f"{y}-{str(y + 1)[-2:]}" for y in base_years]
 label_to_year = dict(zip(fy_labels, base_years))
 year_to_label = {v: k for k, v in label_to_year.items()}
 
-# ---------- HELPERS ----------
 
-def remove_zero_values(data: pd.DataFrame, value_col: str) -> pd.DataFrame:
-    """Remove rows where value column is 0 or empty."""
-    if value_col not in data.columns:
-        return data.reset_index(drop=True)
-    return data[data[value_col] > 0].reset_index(drop=True)
+def remove_zero_values(df: pd.DataFrame, column: str) -> pd.DataFrame:
+    """Remove rows where the specified column has zero or NaN values."""
+    return df[df[column].fillna(0) != 0]
 
 def display_grid_with_export(data: pd.DataFrame, title: str, key_prefix: str):
     """Display data in grid format with CSV and Excel download options (rounded)."""
@@ -89,7 +99,7 @@ def display_grid_with_export(data: pd.DataFrame, title: str, key_prefix: str):
         rounded_data[num_cols] = rounded_data[num_cols].round(0)
 
     # Display as AgGrid if available, else as regular dataframe
-    if AGGRID_AVAILABLE:
+    if AGGRID_AVAILABLE and GridOptionsBuilder is not None and AgGrid is not None:
         try:
             gob = GridOptionsBuilder.from_dataframe(rounded_data)
             gob.configure_default_column(
@@ -97,7 +107,6 @@ def display_grid_with_export(data: pd.DataFrame, title: str, key_prefix: str):
             )
             gob.configure_pagination(paginationAutoPageSize=True)
             grid_options = gob.build()
-
             AgGrid(
                 rounded_data,
                 gridOptions=grid_options,
@@ -110,6 +119,7 @@ def display_grid_with_export(data: pd.DataFrame, title: str, key_prefix: str):
             st.dataframe(rounded_data, use_container_width=True)
     else:
         st.dataframe(rounded_data, use_container_width=True)
+
 
     # Download buttons
     col1, col2 = st.columns(2)
@@ -199,12 +209,12 @@ st.sidebar.markdown(
 )
 
 menu = {
-    "Quarter vs Year Comparison": "comparison",
     "Business Analysis": "business",
     "Branch–Business Analysis": "branchbusiness",
     "Product–Month Analysis": "prodmonth",
     "Credit Note Analysis": "credit",
     "Branch Business-Comparison": "branchcomparison",
+    "Quarter vs Year Comparison": "comparison",
     "Product Category-Comparison": "productcategorycomparison",
 }
 
@@ -226,78 +236,11 @@ for title, key in menu.items():
                 st.session_state.page = key
         st.markdown("</div>", unsafe_allow_html=True)
 
-# =====================================================================
-# PAGE 1: QUARTER COMPARISON
-# =====================================================================
-if st.session_state.page == "comparison":
-    st.header("Sales Comparison")
-
-    selected_quarter = st.selectbox("Select Quarter for Comparison", quarters)
-
-    default_years = years[:2]
-    default_labels = [year_to_label[y] for y in default_years]
-
-    selected_fy_labels_for_cmp = st.multiselect(
-        "Select Financial Years for Comparison",
-        fy_labels,
-        default=default_labels,
-    )
-
-    if len(selected_fy_labels_for_cmp) > 3:
-        st.warning("You can select up to 3 financial years only.")
-        selected_fy_labels_for_cmp = selected_fy_labels_for_cmp[:3]
-
-    selected_years_for_cmp = [label_to_year[lbl] for lbl in selected_fy_labels_for_cmp]
-
-    filtered_df = df[
-        (df["Quarter"] == selected_quarter) & (df["Year"].isin(selected_years_for_cmp))
-    ]
-    compare_chart = filtered_df.groupby("Year")["ActAmt"].sum().reset_index()
-    compare_chart = remove_zero_values(compare_chart, "ActAmt")
-
-    if not compare_chart.empty:
-        compare_chart["FinancialYear"] = compare_chart["Year"].map(year_to_label)
-
-    if compare_chart.empty:
-        st.warning("No data available for the selected filter.")
-    else:
-        # Chart
-        fig_cmp = px.bar(
-            compare_chart,
-            x="FinancialYear",
-            y="ActAmt",
-            title=f"Sales Comparison for {selected_quarter} (by Financial Year)",
-            color="FinancialYear",
-            text="ActAmt",
-            color_discrete_sequence=COLOR_SEQ,
-            template=TEMPLATE,
-        )
-        fig_cmp.update_traces(text=None)
-        st.plotly_chart(fig_cmp, use_container_width=True)
-
-        # Grid with export
-        display_grid_with_export(compare_chart, "Sales Data Table", "comparison_data")
-
-        best_row = compare_chart.loc[compare_chart["ActAmt"].idxmax()]
-        best_fy_label = best_row["FinancialYear"]
-        best_value = best_row["ActAmt"]
-
-        st.markdown(
-            f"""
-            <hr>
-            <p style="font-size:22px; font-weight:700;">
-            Highest sales in <span style="color:#00ff88;">{selected_quarter}</span>
-            were in <span style="color:#ffdd55;">{best_fy_label}</span> with
-            <span style="color:#00c0ff;">₹{best_value:,.0f}</span>.
-            </p>
-            """,
-            unsafe_allow_html=True,
-        )
 
 # =====================================================================
-# PAGE 2: BUSINESS Analysis
+# PAGE 1: BUSINESS Analysis
 # =====================================================================
-elif st.session_state.page == "business":
+if st.session_state.page == "business":
     st.header("Business Analysis")
 
     selected_fy_labels_business = st.multiselect(
@@ -911,6 +854,74 @@ elif st.session_state.page == "branchcomparison":
             <p style="font-size:18px; font-weight:600;">
             Peak {title_prefix.lower()} for <b>{selected_branch}</b>: <span style="color:#00ff88;">{top_row['Month']}</span>
             ({top_row['FinancialYear']}) with <span style="color:#00c0ff;">₹{top_row[value_col]:,.0f}</span>
+            </p>
+            """,
+            unsafe_allow_html=True,
+        )
+
+# =====================================================================
+# PAGE 1: QUARTER COMPARISON
+# =====================================================================
+elif st.session_state.page == "comparison":
+    st.header("Sales Comparison")
+
+    selected_quarter = st.selectbox("Select Quarter for Comparison", quarters)
+
+    default_years = years[:2]
+    default_labels = [year_to_label[y] for y in default_years]
+
+    selected_fy_labels_for_cmp = st.multiselect(
+        "Select Financial Years for Comparison",
+        fy_labels,
+        default=default_labels,
+    )
+
+    if len(selected_fy_labels_for_cmp) > 3:
+        st.warning("You can select up to 3 financial years only.")
+        selected_fy_labels_for_cmp = selected_fy_labels_for_cmp[:3]
+
+    selected_years_for_cmp = [label_to_year[lbl] for lbl in selected_fy_labels_for_cmp]
+
+    filtered_df = df[
+        (df["Quarter"] == selected_quarter) & (df["Year"].isin(selected_years_for_cmp))
+    ]
+    compare_chart = filtered_df.groupby("Year")["ActAmt"].sum().reset_index()
+    compare_chart = remove_zero_values(compare_chart, "ActAmt")
+
+    if not compare_chart.empty:
+        compare_chart["FinancialYear"] = compare_chart["Year"].map(year_to_label)
+
+    if compare_chart.empty:
+        st.warning("No data available for the selected filter.")
+    else:
+        # Chart
+        fig_cmp = px.bar(
+            compare_chart,
+            x="FinancialYear",
+            y="ActAmt",
+            title=f"Sales Comparison for {selected_quarter} (by Financial Year)",
+            color="FinancialYear",
+            text="ActAmt",
+            color_discrete_sequence=COLOR_SEQ,
+            template=TEMPLATE,
+        )
+        fig_cmp.update_traces(text=None)
+        st.plotly_chart(fig_cmp, use_container_width=True)
+
+        # Grid with export
+        display_grid_with_export(compare_chart, "Sales Data Table", "comparison_data")
+
+        best_row = compare_chart.loc[compare_chart["ActAmt"].idxmax()]
+        best_fy_label = best_row["FinancialYear"]
+        best_value = best_row["ActAmt"]
+
+        st.markdown(
+            f"""
+            <hr>
+            <p style="font-size:22px; font-weight:700;">
+            Highest sales in <span style="color:#00ff88;">{selected_quarter}</span>
+            were in <span style="color:#ffdd55;">{best_fy_label}</span> with
+            <span style="color:#00c0ff;">₹{best_value:,.0f}</span>.
             </p>
             """,
             unsafe_allow_html=True,
