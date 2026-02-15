@@ -438,37 +438,49 @@ elif st.session_state.page == "business":
 # PAGE 3: PRODUCT–MONTH
 # =====================================================================
 elif st.session_state.page == "prodmonth":
-    year_df = df[df["Year"] == st.session_state.fy_start]
-    current_fy_label = year_to_label.get(
-        st.session_state.fy_start, f"{st.session_state.fy_start}"
-    )
+    selected_fy_label = st.selectbox(
+    "Select Financial Year",
+    fy_labels
+)
+
+    selected_year = label_to_year[selected_fy_label]
+    year_df = df[df["Year"] == selected_year].copy()
+    # st.session_state.fy_start = year_df
+    # year_df = df[year_df["Year"] == st.session_state.fy_start]
+    # current_fy_label = year_to_label.get(
+    #     st.session_state.fy_start, f"{st.session_state.fy_start}"
+    # )
 
     st.header("Product–Month Analysis")
 
     col1, col2 = st.columns(2)
 
     with col1:
+        mkt_types = year_df["MKTType"].dropna().unique()
+        mkt_types = sorted([str(x) for x in mkt_types])
         selected_categories = st.multiselect(
             "Select Product Category (MKTType)",
-            options=sorted(year_df["MKTType"].unique()),
-            default=sorted(year_df["MKTType"].unique()),
+            options=mkt_types,
+            default=mkt_types,
         )
 
     with col2:
+        months = year_df["Month"].dropna().unique()
+        months = sorted([str(x) for x in months])
         selected_months = st.multiselect(
             "Select Month(s)",
-            options=sorted(year_df["Month"].unique()),
-            default=sorted(year_df["Month"].unique()),
+            options=months,
+            default=months,
         )
 
-    analysis_level = st.radio(
-        "Choose Analysis Level",
-        [
-            "Month-wise Product Category Sales",
-            "Yearly Product Category Sales",
-        ],
-        horizontal=True,
-    )
+    # analysis_level = st.radio(
+    #     "Choose Analysis Level",
+    #     [
+    #         "Month-wise Product Category Sales",
+    #         "Yearly Product Category Sales",
+    #     ],
+    #     horizontal=True,
+    # )
 
     chart_type = st.selectbox(
         "Choose Chart Type",
@@ -484,31 +496,31 @@ elif st.session_state.page == "prodmonth":
     if filtered_df.empty:
         st.warning("No data available for the selected filters.")
     else:
-        if analysis_level == "Month-wise Product Category Sales":
-            agg_df = (
-                filtered_df.groupby(["Month", "MKTType"])["ActAmt"]
-                .sum()
-                .reset_index()
-            )
-            agg_df = remove_zero_values(agg_df, "ActAmt")
-            title = "Month-wise Product Category Sales"
-            x_col = "Month"
-            color_col = "MKTType"
-        else:
-            agg_df = (
-                filtered_df.groupby("MKTType")["ActAmt"].sum().reset_index()
-            )
-            agg_df = remove_zero_values(agg_df, "ActAmt")
-            title = "Yearly Product Category Sales"
-            x_col = "MKTType"
-            color_col = "MKTType"
+        # if analysis_level == "Month-wise Product Category Sales":
+        agg_df_monthly = (
+            filtered_df.groupby(["Month", "MKTType"])["ActAmt"]
+            .sum()
+            .reset_index()
+        )
+        agg_df_monthly = remove_zero_values(agg_df_monthly, "ActAmt")
+        title = "Month-wise Product Category Sales"
+        x_col = "Month"
+        color_col = "MKTType"
+        # else:
+        # agg_df = (
+        #     filtered_df.groupby("MKTType")["ActAmt"].sum().reset_index()
+        # )
+        # agg_df = remove_zero_values(agg_df, "ActAmt")
+        # title = "Yearly Product Category Sales"
+        # x_col = "MKTType"
+        # color_col = "MKTType"
 
-        if agg_df.empty:
+        if agg_df_monthly.empty:
             st.warning("No non-zero sales for the selected filters.")
         else:
             if chart_type == "Bar":
                 fig = px.bar(
-                    agg_df,
+                    agg_df_monthly,
                     x=x_col,
                     y="ActAmt",
                     color=color_col,
@@ -521,7 +533,7 @@ elif st.session_state.page == "prodmonth":
                 # fig.update_traces(width=0.8)
             elif chart_type == "Line":
                 fig = px.line(
-                    agg_df,
+                    agg_df_monthly,
                     x=x_col,
                     y="ActAmt",
                     color=color_col,
@@ -531,7 +543,7 @@ elif st.session_state.page == "prodmonth":
                     template=TEMPLATE,
                 )
             elif chart_type == "Pie":
-                pie_df = agg_df.groupby(color_col)["ActAmt"].sum().reset_index()
+                pie_df = agg_df_monthly.groupby(color_col)["ActAmt"].sum().reset_index()
                 pie_df = remove_zero_values(pie_df, "ActAmt")
                 fig = px.pie(
                     pie_df,
@@ -543,7 +555,7 @@ elif st.session_state.page == "prodmonth":
                 )
             elif chart_type == "Area":
                 fig = px.area(
-                    agg_df,
+                    agg_df_monthly,
                     x=x_col,
                     y="ActAmt",
                     color=color_col,
@@ -555,9 +567,97 @@ elif st.session_state.page == "prodmonth":
             fig.update_traces(text=None)
             st.plotly_chart(fig, use_container_width=True)
 
-            display_grid_with_export(agg_df, "Product Sales Data", "prodmonth_data")
+            display_grid_with_export(agg_df_monthly, "Product Sales Data", "prodmonth_data")
 
-            top_row = agg_df.sort_values("ActAmt", ascending=False).iloc[0]
+            # top_row = agg_df.sort_values("ActAmt", ascending=False).iloc[0]
+            # st.markdown(
+            #     f"""
+            #     <hr>
+            #     <p style="font-size:20px; font-weight:650;">
+            #     Highest sales: <span style="color:#00ff88;">{top_row[color_col]}</span>
+            #     with <span style="color:#00c0ff;">₹{top_row['ActAmt']:,.0f}</span>
+            #     </p>
+            #     """,
+            #     unsafe_allow_html=True,
+            # )
+
+    if filtered_df.empty:
+        st.warning("No data available for the selected filters.")
+    else:
+        # if analysis_level == "Month-wise Product Category Sales":
+        # agg_df = (
+        #     filtered_df.groupby(["Month", "MKTType"])["ActAmt"]
+        #     .sum()
+        #     .reset_index()
+        # )
+        # agg_df = remove_zero_values(agg_df, "ActAmt")
+        # title = "Month-wise Product Category Sales"
+        # x_col = "Month"
+        # color_col = "MKTType"
+        # else:
+        agg_df_yearly = (
+            filtered_df.groupby("MKTType")["ActAmt"].sum().reset_index()
+        )
+        agg_df_yearly = remove_zero_values(agg_df_yearly, "ActAmt")
+        title = "Yearly Product Category Sales"
+        x_col = "MKTType"
+        color_col = "MKTType"
+
+        if agg_df_yearly.empty:
+            st.warning("No non-zero sales for the selected filters.")
+        else:
+            if chart_type == "Bar":
+                fig = px.bar(
+                    agg_df_yearly,
+                    x=x_col,
+                    y="ActAmt",
+                    color=color_col,
+                    title=title,
+                    color_discrete_sequence=COLOR_SEQ,
+                    template=TEMPLATE,
+                )
+                # fig.update_traces(text=None)
+                # fig.update_layout(bargap=0.1, bargroupgap=0.05)
+                # fig.update_traces(width=0.8)
+            elif chart_type == "Line":
+                fig = px.line(
+                    agg_df_yearly,
+                    x=x_col,
+                    y="ActAmt",
+                    color=color_col,
+                    markers=True,
+                    title=title,
+                    color_discrete_sequence=COLOR_SEQ,
+                    template=TEMPLATE,
+                )
+            elif chart_type == "Pie":
+                pie_df = agg_df_yearly.groupby(color_col)["ActAmt"].sum().reset_index()
+                pie_df = remove_zero_values(pie_df, "ActAmt")
+                fig = px.pie(
+                    pie_df,
+                    names=color_col,
+                    values="ActAmt",
+                    title=title,
+                    color_discrete_sequence=COLOR_SEQ,
+                    template=TEMPLATE,
+                )
+            elif chart_type == "Area":
+                fig = px.area(
+                    agg_df_yearly,
+                    x=x_col,
+                    y="ActAmt",
+                    color=color_col,
+                    title=title,
+                    color_discrete_sequence=COLOR_SEQ,
+                    template=TEMPLATE,
+                )
+
+            fig.update_traces(text=None)
+            st.plotly_chart(fig, use_container_width=True)
+
+            display_grid_with_export(agg_df_yearly, "Product Sales Data", "prodmonth_data1")
+
+            top_row = agg_df_yearly.sort_values("ActAmt", ascending=False).iloc[0]
             st.markdown(
                 f"""
                 <hr>
@@ -573,10 +673,13 @@ elif st.session_state.page == "prodmonth":
 # PAGE 4: BRANCH–BUSINESS (MONTH)
 # =====================================================================
 elif st.session_state.page == "branchbusiness":
-    year_df = df[df["Year"] == st.session_state.fy_start]
-    current_fy_label = year_to_label.get(
-        st.session_state.fy_start, f"{st.session_state.fy_start}"
-    )
+    selected_fy_label = st.selectbox(
+    "Select Financial Year",
+    fy_labels
+)
+
+    selected_year = label_to_year[selected_fy_label]
+    year_df = df[df["Year"] == selected_year].copy()
 
     st.header("Branch–Month Analysis")
 
@@ -590,16 +693,16 @@ elif st.session_state.page == "branchbusiness":
     with colB:
         selected_months = st.multiselect("Select Month(s)", month_list, default=month_list)
 
-    metric_type = st.radio(
-        "Choose Analysis Type",
-        [
-            "Total Branch Month-wise Sales",
-            "Actual Branch Month-wise Sales",
-            "Credit Note Branch Month-wise Sales",
-        ],
-        index=0,
-        horizontal=True,
-    )
+    # metric_type = st.radio(
+    #     "Choose Analysis Type",
+    #     [
+    #         "Total Branch Month-wise Sales",
+    #         "Actual Branch Month-wise Sales",
+    #         "Credit Note Branch Month-wise Sales",
+    #     ],
+    #     index=0,
+    #     horizontal=True,
+    # )
 
     chart_type = st.selectbox(
         "Choose Chart Type",
@@ -619,15 +722,80 @@ elif st.session_state.page == "branchbusiness":
 
     branch_month["TotalAmt"] = branch_month["ActAmt"] + branch_month["CNAmt"]
 
-    if metric_type == "Total Branch Month-wise Sales":
-        value_col = "TotalAmt"
-        title = f"Total Sales — {selected_branch}"
-    elif metric_type == "Actual Branch Month-wise Sales":
-        value_col = "ActAmt"
-        title = f"Actual Sales — {selected_branch}"
-    else:
-        value_col = "CNAmt"
-        title = f"Credit Notes — {selected_branch}"
+    # if metric_type == "Total Branch Month-wise Sales":
+    value_col = "TotalAmt"
+    title = f"Total Sales — {selected_branch}"
+    # elif metric_type == "Actual Branch Month-wise Sales":
+    #     value_col = "ActAmt"
+    #     title = f"Actual Sales — {selected_branch}"
+    # else:
+    #     value_col = "CNAmt"
+    #     title = f"Credit Notes — {selected_branch}"
+
+    branch_month = remove_zero_values(branch_month, value_col)
+    branch_month["Month"] = branch_month["Month"].cat.remove_unused_categories()
+
+    if not branch_month.empty and branch_month[value_col].sum() > 0:
+        if chart_type == "Bar":
+            fig = px.bar(
+                branch_month,
+                x="Month",
+                y=value_col,
+                title=title,
+                color="Month",
+                color_discrete_sequence=COLOR_SEQ,
+                template=TEMPLATE,
+            )
+            fig.update_traces(text=None)
+            fig.update_layout(bargap=0.1, bargroupgap=0.05)
+            fig.update_traces(width=0.8)
+        elif chart_type == "Line":
+            fig = px.line(
+                branch_month,
+                x="Month",
+                y=value_col,
+                title=title,
+                markers=True,
+                color="Month",
+                color_discrete_sequence=COLOR_SEQ,
+                template=TEMPLATE,
+            )
+        elif chart_type == "Pie":
+            pie_df = branch_month[["Month", value_col]].copy()
+            pie_df = remove_zero_values(pie_df, value_col)
+            fig = px.pie(
+                pie_df,
+                names="Month",
+                values=value_col,
+                title=title,
+                color_discrete_sequence=COLOR_SEQ,
+                template=TEMPLATE,
+            )
+        elif chart_type == "Area":
+            fig = px.area(
+                branch_month,
+                x="Month",
+                y=value_col,
+                title=title,
+                color="Month",
+                color_discrete_sequence=COLOR_SEQ,
+                template=TEMPLATE,
+            )
+
+        fig.update_traces(text=None)
+        st.plotly_chart(fig, use_container_width=True)
+
+        display_grid_with_export(
+            branch_month, f"Branch Sales - {selected_branch}", "branch_month_data1"
+        )
+
+        # top_row = branch_month.sort_values(value_col, ascending=False).iloc[0]
+
+    value_col = "ActAmt"
+    title = f"Actual Sales — {selected_branch}"
+    # else:
+    #     value_col = "CNAmt"
+    #     title = f"Credit Notes — {selected_branch}"
 
     branch_month = remove_zero_values(branch_month, value_col)
     branch_month["Month"] = branch_month["Month"].cat.remove_unused_categories()
@@ -723,41 +891,41 @@ elif st.session_state.page == "credit":
 
     selected_fy_years = sorted([label_to_year[lbl] for lbl in selected_fy_labels])
 
-    if len(selected_fy_years) > 1:
-        if selected_fy_years != list(
-            range(
-                selected_fy_years[0],
-                selected_fy_years[0] + len(selected_fy_years),
-            )
-        ):
-            st.error("Please select consecutive financial years only.")
-            st.stop()
+    # if len(selected_fy_years) > 1:
+    #     if selected_fy_years != list(
+    #         range(
+    #             selected_fy_years[0],
+    #             selected_fy_years[0] + len(selected_fy_years),
+    #         )
+    #     ):
+    #         st.error("Please select consecutive financial years only.")
+    #         st.stop()
 
-    analysis_type = st.radio(
-        "Choose Month-wise Analysis Type",
-        [
-            "Month-wise Actual Sales",
-            "Month-wise Credit Note Analysis",
-            "Month-wise Total Sales",
-        ],
-        horizontal=True,
-    )
+    # analysis_type = st.radio(
+    #     "Choose Month-wise Analysis Type",
+    #     [
+    #         "Month-wise Actual Sales",
+    #         "Month-wise Credit Note Analysis",
+    #         "Month-wise Total Sales",
+    #     ],
+    #     horizontal=True,
+    # )
 
     cumulative_view = st.checkbox("Show Cumulative Analysis")
 
     fy_df = df[df["Year"].isin(selected_fy_years)]
 
-    if analysis_type == "Month-wise Actual Sales":
-        value_col = "ActAmt"
-        title_prefix = "Actual Sales"
-    elif analysis_type == "Month-wise Credit Note Analysis":
-        value_col = "CNAmt"
-        title_prefix = "Credit Notes"
-    else:
-        fy_df = fy_df.copy()
-        fy_df["TotalAmt"] = fy_df["ActAmt"] + fy_df["CNAmt"]
-        value_col = "TotalAmt"
-        title_prefix = "Total Sales"
+    analysis_type = "Month-wise Actual Sales"
+    value_col = "ActAmt"
+    title_prefix = "Actual Sales"
+    # elif analysis_type == "Month-wise Credit Note Analysis":
+    #     value_col = "CNAmt"
+    #     title_prefix = "Credit Notes"
+    # else:
+    #     fy_df = fy_df.copy()
+    #     fy_df["TotalAmt"] = fy_df["ActAmt"] + fy_df["CNAmt"]
+    #     value_col = "TotalAmt"
+    #     title_prefix = "Total Sales"
 
     month_fy = fy_df.groupby(["Year", "Month"])[value_col].sum().reset_index()
     month_fy = remove_zero_values(month_fy, value_col)
@@ -777,7 +945,7 @@ elif st.session_state.page == "credit":
             color_discrete_sequence=COLOR_SEQ,
             template=TEMPLATE,
         )
-        display_grid_with_export(month_fy_plot, "Cumulative Data", "credit_cumulative")
+        display_grid_with_export(month_fy_plot, "Cumulative Data", "credit_cumulative1")
     else:
         month_fy_plot = month_fy
         fig = px.bar(
@@ -791,7 +959,124 @@ elif st.session_state.page == "credit":
             template=TEMPLATE,
         )
         display_grid_with_export(
-            month_fy_plot, "Financial Year Comparison Data", "credit_fy_data"
+            month_fy_plot, "Financial Year Comparison Data", "credit_fy_data1"
+        )
+
+    fig.update_traces(text=None)
+    st.plotly_chart(fig, use_container_width=True)
+
+    if not month_fy.empty:
+        top_row = month_fy.sort_values(value_col, ascending=False).iloc[0]
+        st.markdown(
+            f"""
+            <hr>
+            <p style="font-size:18px; font-weight:600;">
+            Highest {title_prefix.lower()}: <span style="color:#00ff88;">{top_row['Month']}</span>
+            with <span style="color:#00c0ff;">₹{top_row[value_col]:,.0f}</span>
+            </p>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    analysis_type = "Month-wise Credit Note Analysis"
+    value_col = "CNAmt"
+    title_prefix = "Credit Notes"
+    # else:
+    #     fy_df = fy_df.copy()
+    #     fy_df["TotalAmt"] = fy_df["ActAmt"] + fy_df["CNAmt"]
+    #     value_col = "TotalAmt"
+    #     title_prefix = "Total Sales"
+
+    month_fy = fy_df.groupby(["Year", "Month"])[value_col].sum().reset_index()
+    month_fy = remove_zero_values(month_fy, value_col)
+
+    month_fy["FinancialYear"] = month_fy["Year"].map(year_to_label)
+
+    if cumulative_view:
+        month_fy_plot = month_fy.groupby("Month")[value_col].sum().reset_index()
+        month_fy_plot = remove_zero_values(month_fy_plot, value_col)
+        month_fy["Month"] = month_fy["Month"].cat.remove_unused_categories()
+        fig = px.bar(
+            month_fy_plot,
+            x="Month",
+            y=value_col,
+            title=f"Cumulative Month-wise {title_prefix}",
+            color="Month",
+            color_discrete_sequence=COLOR_SEQ,
+            template=TEMPLATE,
+        )
+        display_grid_with_export(month_fy_plot, "Cumulative Data", "credit_cumulative2")
+    else:
+        month_fy_plot = month_fy
+        fig = px.bar(
+            month_fy_plot,
+            x="Month",
+            y=value_col,
+            color="FinancialYear",
+            barmode="group",
+            title=f"Month-wise {title_prefix} Comparison",
+            color_discrete_sequence=COLOR_SEQ,
+            template=TEMPLATE,
+        )
+        display_grid_with_export(
+            month_fy_plot, "Financial Year Comparison Data", "credit_fy_data2"
+        )
+
+    fig.update_traces(text=None)
+    st.plotly_chart(fig, use_container_width=True)
+
+    if not month_fy.empty:
+        top_row = month_fy.sort_values(value_col, ascending=False).iloc[0]
+        st.markdown(
+            f"""
+            <hr>
+            <p style="font-size:18px; font-weight:600;">
+            Highest {title_prefix.lower()}: <span style="color:#00ff88;">{top_row['Month']}</span>
+            with <span style="color:#00c0ff;">₹{top_row[value_col]:,.0f}</span>
+            </p>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    analysis_type = "Month-wise Total Sales"
+    fy_df = fy_df.copy()
+    fy_df["TotalAmt"] = fy_df["ActAmt"] + fy_df["CNAmt"]
+    value_col = "TotalAmt"
+    title_prefix = "Total Sales"
+
+    month_fy = fy_df.groupby(["Year", "Month"])[value_col].sum().reset_index()
+    month_fy = remove_zero_values(month_fy, value_col)
+
+    month_fy["FinancialYear"] = month_fy["Year"].map(year_to_label)
+
+    if cumulative_view:
+        month_fy_plot = month_fy.groupby("Month")[value_col].sum().reset_index()
+        month_fy_plot = remove_zero_values(month_fy_plot, value_col)
+        month_fy["Month"] = month_fy["Month"].cat.remove_unused_categories()
+        fig = px.bar(
+            month_fy_plot,
+            x="Month",
+            y=value_col,
+            title=f"Cumulative Month-wise {title_prefix}",
+            color="Month",
+            color_discrete_sequence=COLOR_SEQ,
+            template=TEMPLATE,
+        )
+        display_grid_with_export(month_fy_plot, "Cumulative Data", "credit_cumulative3")
+    else:
+        month_fy_plot = month_fy
+        fig = px.bar(
+            month_fy_plot,
+            x="Month",
+            y=value_col,
+            color="FinancialYear",
+            barmode="group",
+            title=f"Month-wise {title_prefix} Comparison",
+            color_discrete_sequence=COLOR_SEQ,
+            template=TEMPLATE,
+        )
+        display_grid_with_export(
+            month_fy_plot, "Financial Year Comparison Data", "credit_fy_data3"
         )
 
     fig.update_traces(text=None)
@@ -834,25 +1119,25 @@ elif st.session_state.page == "branchcomparison":
 
     selected_fy_years = sorted([label_to_year[lbl] for lbl in selected_fy_labels])
 
-    if len(selected_fy_years) > 1:
-        if selected_fy_years != list(
-            range(
-                selected_fy_years[0],
-                selected_fy_years[0] + len(selected_fy_years),
-            )
-        ):
-            st.error("Please select consecutive financial years only.")
-            st.stop()
+    # if len(selected_fy_years) > 1:
+    #     if selected_fy_years != list(
+    #         range(
+    #             selected_fy_years[0],
+    #             selected_fy_years[0] + len(selected_fy_years),
+    #         )
+    #     ):
+    #         st.error("Please select consecutive financial years only.")
+    #         st.stop()
 
-    analysis_type = st.radio(
-        "Choose Month-wise Branch Analysis Type",
-        [
-            "Month-wise Actual Branch Sales",
-            "Month-wise Branch Credit Note Analysis",
-            "Month-wise Branch Total Sales",
-        ],
-        horizontal=True,
-    )
+    # analysis_type = st.radio(
+    #     "Choose Month-wise Branch Analysis Type",
+    #     [
+    #         "Month-wise Actual Branch Sales",
+    #         "Month-wise Branch Credit Note Analysis",
+    #         "Month-wise Branch Total Sales",
+    #     ],
+    #     horizontal=True,
+    # )
 
     cumulative_view = st.checkbox("Show Cumulative Analysis")
 
@@ -860,17 +1145,17 @@ elif st.session_state.page == "branchcomparison":
         (df["BranchName"] == selected_branch) & (df["Year"].isin(selected_fy_years))
     ]
 
-    if analysis_type == "Month-wise Actual Branch Sales":
-        value_col = "ActAmt"
-        title_prefix = "Actual Sales"
-    elif analysis_type == "Month-wise Branch Credit Note Analysis":
-        value_col = "CNAmt"
-        title_prefix = "Credit Notes"
-    else:
-        branch_df = branch_df.copy()
-        branch_df["TotalAmt"] = branch_df["ActAmt"] + branch_df["CNAmt"]
-        value_col = "TotalAmt"
-        title_prefix = "Total Sales"
+    analysis_type = "Month-wise Actual Branch Sales"
+    value_col = "ActAmt"
+    title_prefix = "Actual Sales"
+    # elif analysis_type == "Month-wise Branch Credit Note Analysis":
+    #     value_col = "CNAmt"
+    #     title_prefix = "Credit Notes"
+    # else:
+    #     branch_df = branch_df.copy()
+    #     branch_df["TotalAmt"] = branch_df["ActAmt"] + branch_df["CNAmt"]
+    #     value_col = "TotalAmt"
+    #     title_prefix = "Total Sales"
 
     month_fy_branch = (
         branch_df.groupby(["Year", "Month"])[value_col].sum().reset_index()
@@ -893,7 +1178,7 @@ elif st.session_state.page == "branchcomparison":
             color_discrete_sequence=COLOR_SEQ,
             template=TEMPLATE,
         )
-        display_grid_with_export(cum_df, "Cumulative Branch Data", "branch_cumulative")
+        display_grid_with_export(cum_df, "Cumulative Branch Data", "branch_cumulative1")
     else:
         fig = px.bar(
             month_fy_branch,
@@ -906,7 +1191,130 @@ elif st.session_state.page == "branchcomparison":
             template=TEMPLATE,
         )
         display_grid_with_export(
-            month_fy_branch, "Branch FY Comparison Data", "branch_fy_data"
+            month_fy_branch, "Branch FY Comparison Data", "branch_fy_data1"
+        )
+
+    fig.update_traces(text=None)
+    st.plotly_chart(fig, use_container_width=True)
+
+    if not month_fy_branch.empty:
+        top_row = month_fy_branch.sort_values(value_col, ascending=False).iloc[0]
+        st.markdown(
+            f"""
+            <hr>
+            <p style="font-size:18px; font-weight:600;">
+            Peak {title_prefix.lower()} for <b>{selected_branch}</b>: <span style="color:#00ff88;">{top_row['Month']}</span>
+            ({top_row['FinancialYear']}) with <span style="color:#00c0ff;">₹{top_row[value_col]:,.0f}</span>
+            </p>
+            """,
+            unsafe_allow_html=True,
+        )
+
+
+    analysis_type = "Month-wise Branch Credit Note Analysis"
+    value_col = "CNAmt"
+    title_prefix = "Credit Notes"
+    # else:
+    #     branch_df = branch_df.copy()
+    #     branch_df["TotalAmt"] = branch_df["ActAmt"] + branch_df["CNAmt"]
+    #     value_col = "TotalAmt"
+    #     title_prefix = "Total Sales"
+
+    month_fy_branch = (
+        branch_df.groupby(["Year", "Month"])[value_col].sum().reset_index()
+    )
+    month_fy_branch = remove_zero_values(month_fy_branch, value_col)
+
+    month_fy_branch["FinancialYear"] = month_fy_branch["Year"].map(year_to_label)
+
+    if cumulative_view:
+        cum_df = month_fy_branch.groupby("Month")[value_col].sum().reset_index()
+        cum_df = remove_zero_values(cum_df, value_col)
+        month_fy_branch["Month"] = month_fy_branch["Month"].cat.remove_unused_categories()
+
+        fig = px.bar(
+            cum_df,
+            x="Month",
+            y=value_col,
+            title=f"Cumulative {title_prefix} — {selected_branch}",
+            color="Month",
+            color_discrete_sequence=COLOR_SEQ,
+            template=TEMPLATE,
+        )
+        display_grid_with_export(cum_df, "Cumulative Branch Data", "branch_cumulative2")
+    else:
+        fig = px.bar(
+            month_fy_branch,
+            x="Month",
+            y=value_col,
+            color="FinancialYear",
+            barmode="group",
+            title=f"Month-wise {title_prefix} — {selected_branch}",
+            color_discrete_sequence=COLOR_SEQ,
+            template=TEMPLATE,
+        )
+        display_grid_with_export(
+            month_fy_branch, "Branch FY Comparison Data", "branch_fy_data2"
+        )
+
+    fig.update_traces(text=None)
+    st.plotly_chart(fig, use_container_width=True)
+
+    if not month_fy_branch.empty:
+        top_row = month_fy_branch.sort_values(value_col, ascending=False).iloc[0]
+        st.markdown(
+            f"""
+            <hr>
+            <p style="font-size:18px; font-weight:600;">
+            Peak {title_prefix.lower()} for <b>{selected_branch}</b>: <span style="color:#00ff88;">{top_row['Month']}</span>
+            ({top_row['FinancialYear']}) with <span style="color:#00c0ff;">₹{top_row[value_col]:,.0f}</span>
+            </p>
+            """,
+            unsafe_allow_html=True,
+        )
+
+
+    analysis_type = "Month-wise Branch Total Sales"
+    branch_df = branch_df.copy()
+    branch_df["TotalAmt"] = branch_df["ActAmt"] + branch_df["CNAmt"]
+    value_col = "TotalAmt"
+    title_prefix = "Total Sales"
+
+    month_fy_branch = (
+        branch_df.groupby(["Year", "Month"])[value_col].sum().reset_index()
+    )
+    month_fy_branch = remove_zero_values(month_fy_branch, value_col)
+
+    month_fy_branch["FinancialYear"] = month_fy_branch["Year"].map(year_to_label)
+
+    if cumulative_view:
+        cum_df = month_fy_branch.groupby("Month")[value_col].sum().reset_index()
+        cum_df = remove_zero_values(cum_df, value_col)
+        month_fy_branch["Month"] = month_fy_branch["Month"].cat.remove_unused_categories()
+
+        fig = px.bar(
+            cum_df,
+            x="Month",
+            y=value_col,
+            title=f"Cumulative {title_prefix} — {selected_branch}",
+            color="Month",
+            color_discrete_sequence=COLOR_SEQ,
+            template=TEMPLATE,
+        )
+        display_grid_with_export(cum_df, "Cumulative Branch Data", "branch_cumulative3")
+    else:
+        fig = px.bar(
+            month_fy_branch,
+            x="Month",
+            y=value_col,
+            color="FinancialYear",
+            barmode="group",
+            title=f"Month-wise {title_prefix} — {selected_branch}",
+            color_discrete_sequence=COLOR_SEQ,
+            template=TEMPLATE,
+        )
+        display_grid_with_export(
+            month_fy_branch, "Branch FY Comparison Data", "branch_fy_data3"
         )
 
     fig.update_traces(text=None)
