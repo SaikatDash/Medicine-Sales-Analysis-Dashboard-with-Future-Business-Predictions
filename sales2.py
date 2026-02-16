@@ -4,6 +4,8 @@ import plotly.express as px
 from io import BytesIO
 import time
 from typing import TYPE_CHECKING
+from statsmodels.tsa.arima.model import ARIMA
+import numpy as np
 
 AGGRID_AVAILABLE = False
 GridOptionsBuilder = None
@@ -210,6 +212,17 @@ st.sidebar.markdown(
     unsafe_allow_html=True,
 )
 
+st.sidebar.markdown("---")
+st.sidebar.markdown(
+    """
+    <p style='font-size:12px; color:#aaa;'>
+    <b>📓 Resources:</b><br>
+    View detailed ARIMA analysis in <b>arima.ipynb</b>
+    </p>
+    """,
+    unsafe_allow_html=True,
+)
+
 menu = {
     "Business Analysis": "business",
     "Branch–Business Analysis": "branchbusiness",
@@ -218,6 +231,7 @@ menu = {
     "Branch Business-Comparison": "branchcomparison",
     "Quarter vs Year Comparison": "comparison",
     "Product Category-Comparison": "productcategorycomparison",
+    "Sales Forecast (ARIMA)": "forecast",
 }
 
 for title, key in menu.items():
@@ -1110,3 +1124,141 @@ elif st.session_state.page == "productcategorycomparison":
             """,
             unsafe_allow_html=True,
         )
+
+# ==============================================================================
+# PAGE: SALES FORECAST (ARIMA)
+# ==============================================================================
+elif st.session_state.page == "forecast":
+    st.header("📊 Sales Forecast Using ARIMA")
+    
+    st.markdown("### 📝 Enter Forecast Parameters")
+    
+    # User input for forecast years
+    forecast_years_input = st.number_input(
+        "Number of years to forecast:",
+        min_value=1,
+        max_value=10,
+        value=3,
+        step=1,
+        key="forecast_years_input"
+    )
+    
+    # Store in session state
+    st.session_state.forecast_years = forecast_years_input
+    
+    st.markdown("---")
+    
+    # Prepare yearly sales data
+    forecast_df = df[['AcYr', 'ActAmt']].copy()
+    forecast_df['ActAmt'] = pd.to_numeric(forecast_df['ActAmt'], errors='coerce')
+    forecast_df = forecast_df.dropna(subset=['ActAmt'])
+    forecast_df['Year'] = forecast_df['AcYr'].str[:4].astype(int)
+    yearly_sales = forecast_df.groupby('Year')['ActAmt'].sum().sort_index()
+    
+    if len(yearly_sales) < 3:
+        st.warning("Insufficient data for ARIMA forecast. Need at least 3 years of data.")
+        st.stop()
+    
+    # Train ARIMA model
+    try:
+        model = ARIMA(yearly_sales, order=(1, 1, 1))
+        model_fit = model.fit()
+        
+        # Generate forecast using session state input
+        steps = st.session_state.forecast_years
+        forecast = model_fit.forecast(steps=steps)
+        
+        # Create forecast dataframe
+        last_year = int(yearly_sales.index.max())
+        future_years_list = list(range(last_year + 1, last_year + steps + 1))
+        forecast_df_result = pd.DataFrame({
+            "Year": future_years_list,
+            "Predicted_Sales": forecast.values
+        })
+        
+        # Extract actual years for plotting
+        actual_years = list(yearly_sales.index)
+        actual_sales = yearly_sales.values
+        
+        # Create plot
+        st.subheader("Yearly Sales Forecast")
+        
+        fig_forecast = st.plotly_chart(
+            px.line(
+                pd.DataFrame({
+                    "Year": actual_years + future_years_list,
+                    "Sales": list(actual_sales) + list(forecast.values),
+                    "Type": ["Actual"] * len(actual_years) + ["Forecast"] * len(future_years_list)
+                }),
+                x="Year",
+                y="Sales",
+                color="Type",
+                title="Historical & Forecasted Yearly Sales",
+                markers=True,
+                color_discrete_map={"Actual": "#00c0ff", "Forecast": "#00ff88"},
+                template=TEMPLATE
+            ),
+            use_container_width=True
+        )
+        
+        # Display forecast table
+        st.subheader("Forecast Data")
+        display_grid_with_export(forecast_df_result, "Forecasted Sales", "forecast_data")
+        
+        # Save forecast to CSV for notebook reference
+        forecast_csv = forecast_df_result.to_csv(index=False)
+        st.download_button(
+            label="⬇️ Download Forecast CSV",
+            data=forecast_csv,
+            file_name="arima_forecast.csv",
+            mime="text/csv"
+        )
+        
+        # Summary metrics
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric(
+                "Latest Actual Sales (Year)",
+                f"{int(yearly_sales.index.max())}",
+                f"₹{yearly_sales.iloc[-1]:,.0f}"
+            )
+        
+        with col2:
+            st.metric(
+                "Forecast Start",
+                f"{future_years_list[0]}",
+                f"₹{forecast.iloc[0]:,.0f}"
+            )
+        
+        with col3:
+            st.metric(
+                "Forecast End",
+                f"{future_years_list[-1]}",
+                f"₹{forecast.iloc[-1]:,.0f}"
+            )
+        
+        # Trend analysis
+        st.subheader("Trend Analysis")
+        avg_actual = actual_sales.mean()
+        avg_forecast = forecast.values.mean()
+        trend_change = ((avg_forecast - avg_actual) / avg_actual) * 100
+        
+        if trend_change > 0:
+            trend_color = "#00ff88"
+            trend_text = f"📈 Upward trend: +{trend_change:.1f}%"
+        else:
+            trend_color = "#ff6b6b"
+            trend_text = f"📉 Downward trend: {trend_change:.1f}%"
+        
+        st.markdown(
+            f"""
+            <p style="font-size:18px; font-weight:600;">
+            {trend_text}</p>
+            """,
+            unsafe_allow_html=True,
+        )
+        
+    except Exception as e:
+        st.error(f"Error in ARIMA model: {str(e)}")
+        st.info("Please ensure you have sufficient data and try again.")
