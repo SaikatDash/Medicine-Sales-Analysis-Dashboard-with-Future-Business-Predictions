@@ -1357,15 +1357,15 @@ elif st.session_state.page == "productcategorycomparison":
 
     selected_fy_years = sorted([label_to_year[lbl] for lbl in selected_fy_labels])
 
-    if len(selected_fy_years) > 1:
-        if selected_fy_years != list(
-            range(
-                selected_fy_years[0],
-                selected_fy_years[0] + len(selected_fy_years),
-            )
-        ):
-            st.error("Please select consecutive financial years only.")
-            st.stop()
+    # if len(selected_fy_years) > 1:
+    #     if selected_fy_years != list(
+    #         range(
+    #             selected_fy_years[0],
+    #             selected_fy_years[0] + len(selected_fy_years),
+    #         )
+    #     ):
+    #         st.error("Please select consecutive financial years only.")
+    #         st.stop()
 
     base_df = df[
         (df["BranchName"] == selected_branch) & (df["Year"].isin(selected_fy_years))
@@ -1396,15 +1396,15 @@ elif st.session_state.page == "productcategorycomparison":
 
     cumulative_view = st.checkbox("Show Cumulative Analysis")
 
-    metric_type = st.radio(
-        "Choose Sales Type",
-        [
-            "Actual Sales",
-            "Credit Note Sales",
-            "Total Sales",
-        ],
-        horizontal=True,
-    )
+    # metric_type = st.radio(
+    #     "Choose Sales Type",
+    #     [
+    #         "Actual Sales",
+    #         "Credit Note Sales",
+    #         "Total Sales",
+    #     ],
+    #     horizontal=True,
+    # )
 
     filtered_df = base_df[
         (base_df["MKTType"].isin(selected_categories))
@@ -1415,17 +1415,17 @@ elif st.session_state.page == "productcategorycomparison":
         st.warning("No data available for selected filters.")
         st.stop()
 
-    if metric_type == "Actual Sales":
-        value_col = "ActAmt"
-        title_prefix = "Actual Sales"
-    elif metric_type == "Credit Note Sales":
-        value_col = "CNAmt"
-        title_prefix = "Credit Notes"
-    else:
-        filtered_df = filtered_df.copy()
-        filtered_df["TotalAmt"] = filtered_df["ActAmt"] + filtered_df["CNAmt"]
-        value_col = "TotalAmt"
-        title_prefix = "Total Sales"
+    metric_type = "Actual Sales"
+    value_col = "ActAmt"
+    title_prefix = "Actual Sales"
+    # elif metric_type == "Credit Note Sales":
+    #     value_col = "CNAmt"
+    #     title_prefix = "Credit Notes"
+    # else:
+    #     filtered_df = filtered_df.copy()
+    #     filtered_df["TotalAmt"] = filtered_df["ActAmt"] + filtered_df["CNAmt"]
+    #     value_col = "TotalAmt"
+    #     title_prefix = "Total Sales"
 
     if analysis_level == "Month-wise Product Category Sales":
         agg_df = (
@@ -1463,7 +1463,7 @@ elif st.session_state.page == "productcategorycomparison":
                 template=TEMPLATE,
             )
             display_grid_with_export(
-                cum_df, "Cumulative Product Data", "product_cumulative"
+                cum_df, "Cumulative Product Data", "product_cumulative1"
             )
         else:
             fig = px.bar(
@@ -1477,7 +1477,157 @@ elif st.session_state.page == "productcategorycomparison":
                 template=TEMPLATE,
             )
             display_grid_with_export(
-                agg_df, "Product Category Data", "product_category_data"
+                agg_df, "Product Category Data", "product_category_data1"
+            )
+
+        fig.update_traces(text=None)
+        st.plotly_chart(fig, use_container_width=True)
+
+        top_row = agg_df.sort_values(value_col, ascending=False).iloc[0]
+        st.markdown(
+            f"""
+            <hr>
+            <p style="font-size:18px; font-weight:600;">
+            Highest: <span style="color:#00ff88;">{top_row['MKTType']}</span>
+            with <span style="color:#00c0ff;">₹{top_row[value_col]:,.0f}</span>
+            </p>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    metric_type == "Credit Note Sales"
+    value_col = "CNAmt"
+    title_prefix = "Credit Notes"
+    # else:
+    #     filtered_df = filtered_df.copy()
+    #     filtered_df["TotalAmt"] = filtered_df["ActAmt"] + filtered_df["CNAmt"]
+    #     value_col = "TotalAmt"
+    #     title_prefix = "Total Sales"
+
+    if analysis_level == "Month-wise Product Category Sales":
+        agg_df = (
+            filtered_df.groupby(["Year", "Month", "MKTType"])[value_col]
+            .sum()
+            .reset_index()
+        )
+        agg_df = remove_zero_values(agg_df, value_col)
+        agg_df["FinancialYear"] = agg_df["Year"].map(year_to_label)
+        x_col = "Month"
+        color_col = "MKTType"
+    else:
+        agg_df = (
+            filtered_df.groupby(["Year", "MKTType"])[value_col].sum().reset_index()
+        )
+        agg_df = remove_zero_values(agg_df, value_col)
+        agg_df["FinancialYear"] = agg_df["Year"].map(year_to_label)
+        x_col = "MKTType"
+        color_col = "FinancialYear"
+
+    if agg_df.empty:
+        st.warning("No non-zero data for selected filters.")
+    else:
+        if cumulative_view:
+            cum_df = agg_df.groupby(x_col)[value_col].sum().reset_index()
+            cum_df = remove_zero_values(cum_df, value_col)
+
+            fig = px.bar(
+                cum_df,
+                x=x_col,
+                y=value_col,
+                title=f"Cumulative {analysis_level} — {title_prefix}",
+                color=x_col,
+                color_discrete_sequence=COLOR_SEQ,
+                template=TEMPLATE,
+            )
+            display_grid_with_export(
+                cum_df, "Cumulative Product Data", "product_cumulative2"
+            )
+        else:
+            fig = px.bar(
+                agg_df,
+                x=x_col,
+                y=value_col,
+                color=color_col,
+                barmode="group",
+                title=f"{analysis_level} — {title_prefix}",
+                color_discrete_sequence=COLOR_SEQ,
+                template=TEMPLATE,
+            )
+            display_grid_with_export(
+                agg_df, "Product Category Data", "product_category_data2"
+            )
+
+        fig.update_traces(text=None)
+        st.plotly_chart(fig, use_container_width=True)
+
+        top_row = agg_df.sort_values(value_col, ascending=False).iloc[0]
+        st.markdown(
+            f"""
+            <hr>
+            <p style="font-size:18px; font-weight:600;">
+            Highest: <span style="color:#00ff88;">{top_row['MKTType']}</span>
+            with <span style="color:#00c0ff;">₹{top_row[value_col]:,.0f}</span>
+            </p>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    filtered_df = filtered_df.copy()
+    filtered_df["TotalAmt"] = filtered_df["ActAmt"] + filtered_df["CNAmt"]
+    value_col = "TotalAmt"
+    title_prefix = "Total Sales"
+
+    if analysis_level == "Month-wise Product Category Sales":
+        agg_df = (
+            filtered_df.groupby(["Year", "Month", "MKTType"])[value_col]
+            .sum()
+            .reset_index()
+        )
+        agg_df = remove_zero_values(agg_df, value_col)
+        agg_df["FinancialYear"] = agg_df["Year"].map(year_to_label)
+        x_col = "Month"
+        color_col = "MKTType"
+    else:
+        agg_df = (
+            filtered_df.groupby(["Year", "MKTType"])[value_col].sum().reset_index()
+        )
+        agg_df = remove_zero_values(agg_df, value_col)
+        agg_df["FinancialYear"] = agg_df["Year"].map(year_to_label)
+        x_col = "MKTType"
+        color_col = "FinancialYear"
+
+    if agg_df.empty:
+        st.warning("No non-zero data for selected filters.")
+    else:
+        if cumulative_view:
+            cum_df = agg_df.groupby(x_col)[value_col].sum().reset_index()
+            cum_df = remove_zero_values(cum_df, value_col)
+
+            fig = px.bar(
+                cum_df,
+                x=x_col,
+                y=value_col,
+                title=f"Cumulative {analysis_level} — {title_prefix}",
+                color=x_col,
+                color_discrete_sequence=COLOR_SEQ,
+                template=TEMPLATE,
+            )
+            display_grid_with_export(
+                cum_df, "Cumulative Product Data", "product_cumulative3"
+            )
+        else:
+            fig = px.bar(
+                agg_df,
+                x=x_col,
+                y=value_col,
+                color=color_col,
+                barmode="group",
+                title=f"{analysis_level} — {title_prefix}",
+                color_discrete_sequence=COLOR_SEQ,
+                template=TEMPLATE,
+            )
+            display_grid_with_export(
+                agg_df, "Product Category Data", "product_category_data3"
             )
 
         fig.update_traces(text=None)
