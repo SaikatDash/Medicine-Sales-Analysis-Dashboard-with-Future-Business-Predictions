@@ -344,7 +344,7 @@ elif st.session_state.page == "business":
 
 
     month_cn["Month"] = month_cn["Month"].cat.remove_unused_categories()
-    st.subheader("Analysis Visualization")
+    st.subheader("Choose Analysis Type")
 
 
     
@@ -354,7 +354,7 @@ elif st.session_state.page == "business":
         y="TotalAmt",
         title="Total Month-wise Amount",
         color="Month",
-        # text="TotalAmt",
+        text="TotalAmt",
         color_discrete_sequence=COLOR_SEQ,
         template=TEMPLATE,
     )
@@ -387,7 +387,7 @@ elif st.session_state.page == "business":
             y="ActAmt",
             title="Month-wise Actual Sales",
             color="Month",
-            # text="ActAmt",
+            text="ActAmt",
             color_discrete_sequence=COLOR_SEQ,
             template=TEMPLATE,
         )
@@ -420,7 +420,7 @@ elif st.session_state.page == "business":
             y="CNAmt",
             title="Month-wise Credit Notes",
             color="Month",
-            # text="CNAmt",
+            text="CNAmt",
             color_discrete_sequence=COLOR_SEQ,
             template=TEMPLATE,
         )
@@ -777,9 +777,6 @@ elif st.session_state.page == "branchbusiness":
 
     branch_month = remove_zero_values(branch_month, value_col)
     branch_month["Month"] = branch_month["Month"].cat.remove_unused_categories()
-    display_grid_with_export(
-            branch_month, f"Branch Sales - {selected_branch}", "branch_month_data1"
-        )
 
     if not branch_month.empty and branch_month[value_col].sum() > 0:
         if chart_type == "Bar":
@@ -831,20 +828,11 @@ elif st.session_state.page == "branchbusiness":
         fig.update_traces(text=None)
         st.plotly_chart(fig, use_container_width=True)
 
-        
-
-        top_row = branch_month.sort_values(value_col, ascending=False).iloc[0]
-        st.markdown(
-            f"""
-            
-            <p style="font-size:20px; font-weight:650;">
-            Highest for <b>{selected_branch}</b>: <span style="color:#00ff88;">{top_row['Month']}</span>
-            with <span style="color:#00c0ff;">₹{top_row[value_col]:,.0f}</span>
-            </p>
-            <hr>
-            """,
-            unsafe_allow_html=True,
+        display_grid_with_export(
+            branch_month, f"Branch Sales - {selected_branch}", "branch_month_data1"
         )
+
+        # top_row = branch_month.sort_values(value_col, ascending=False).iloc[0]
 
     value_col = "ActAmt"
     title = f"Actual Sales — {selected_branch}"
@@ -905,94 +893,19 @@ elif st.session_state.page == "branchbusiness":
         fig.update_traces(text=None)
         st.plotly_chart(fig, use_container_width=True)
 
-        # display_grid_with_export(
-        #     branch_month, f"Branch Sales - {selected_branch}", "branch_month_data"
-        # )
-
-        top_row = branch_month.sort_values(value_col, ascending=False).iloc[0]
-
-        st.markdown(
-            f"""
-            
-            <p style="font-size:20px; font-weight:650;">
-            Highest for <b>{selected_branch}</b>: <span style="color:#00ff88;">{top_row['Month']}</span>
-            with <span style="color:#00c0ff;">₹{top_row[value_col]:,.0f}</span>
-            </p>
-            <hr>
-            """,
-            unsafe_allow_html=True,
+        display_grid_with_export(
+            branch_month, f"Branch Sales - {selected_branch}", "branch_month_data"
         )
 
-    value_col = "CNAmt"
-    title = f"Credit Notes — {selected_branch}"
-
-    branch_month = remove_zero_values(branch_month, value_col)
-    branch_month["Month"] = branch_month["Month"].cat.remove_unused_categories()
-
-    if not branch_month.empty and branch_month[value_col].sum() > 0:
-        if chart_type == "Bar":
-            fig = px.bar(
-                branch_month,
-                x="Month",
-                y=value_col,
-                title=title,
-                color="Month",
-                color_discrete_sequence=COLOR_SEQ,
-                template=TEMPLATE,
-            )
-            fig.update_traces(text=None)
-            fig.update_layout(bargap=0.1, bargroupgap=0.05)
-            fig.update_traces(width=0.8)
-        elif chart_type == "Line":
-            fig = px.line(
-                branch_month,
-                x="Month",
-                y=value_col,
-                title=title,
-                markers=True,
-                color="Month",
-                color_discrete_sequence=COLOR_SEQ,
-                template=TEMPLATE,
-            )
-        elif chart_type == "Pie":
-            pie_df = branch_month[["Month", value_col]].copy()
-            pie_df = remove_zero_values(pie_df, value_col)
-            fig = px.pie(
-                pie_df,
-                names="Month",
-                values=value_col,
-                title=title,
-                color_discrete_sequence=COLOR_SEQ,
-                template=TEMPLATE,
-            )
-        elif chart_type == "Area":
-            fig = px.area(
-                branch_month,
-                x="Month",
-                y=value_col,
-                title=title,
-                color="Month",
-                color_discrete_sequence=COLOR_SEQ,
-                template=TEMPLATE,
-            )
-
-        fig.update_traces(text=None)
-        st.plotly_chart(fig, use_container_width=True)
-
-        # display_grid_with_export(
-        #     branch_month, f"Branch Sales - {selected_branch}", "branch_month_data"
-        # )
-
         top_row = branch_month.sort_values(value_col, ascending=False).iloc[0]
 
         st.markdown(
             f"""
-            
+            <hr>
             <p style="font-size:20px; font-weight:650;">
             Highest for <b>{selected_branch}</b>: <span style="color:#00ff88;">{top_row['Month']}</span>
             with <span style="color:#00c0ff;">₹{top_row[value_col]:,.0f}</span>
             </p>
-            <hr>
             """,
             unsafe_allow_html=True,
         )
