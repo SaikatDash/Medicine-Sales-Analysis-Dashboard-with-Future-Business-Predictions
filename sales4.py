@@ -3,6 +3,20 @@ import pandas as pd
 import plotly.express as px
 from io import BytesIO
 import time
+import numpy as np
+import warnings
+import math
+import matplotlib.pyplot as plt
+from statsmodels.tsa.arima.model import ARIMA
+from statsmodels.tsa.stattools import adfuller
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+import statsmodels.api as sm
+import statsmodels.tsa.api as smt
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+import plotly.graph_objects as go
+from pandas.tseries.offsets import DateOffset
+
+warnings.filterwarnings('ignore')
 
 # Disable st_aggrid - use regular dataframe instead
 AGGRID_AVAILABLE = False
@@ -70,6 +84,266 @@ label_to_year = dict(zip(fy_labels, base_years))
 year_to_label = {v: k for k, v in label_to_year.items()}
 
 # ---------- HELPERS ----------
+
+def test_stationarity(timeseries):
+    """Test stationarity using Augmented Dickey-Fuller test."""
+    dftest = adfuller(timeseries, autolag='AIC')
+    return {
+        'Test Statistic': dftest[0],
+        'p-value': dftest[1],
+        '#Lags Used': dftest[2],
+        'Observations': dftest[3],
+        'Critical Values': dftest[4]
+    }
+
+def run_arima_forecast(data: pd.DataFrame, arima_order=(2, 1, 2), test_size=30, forecast_periods=48):
+    """
+    Run comprehensive ARIMA forecasting from notebook.
+    
+    Parameters:
+    - data: DataFrame with MMYYYY and ActAmt columns
+    - arima_order: ARIMA order tuple (p, d, q) - default (2,1,2) from notebook
+    - test_size: number of observations for backtesting 
+    - forecast_periods: number of future periods to forecast
+    """
+    try:
+        # Prepare time series data
+        ts_data = data.groupby('MMYYYY')['ActAmt'].sum().reset_index()
+        ts_data = ts_data.sort_values('MMYYYY').set_index('MMYYYY')
+        
+        # ===== STATIONARITY TEST =====
+        stationarity_results = test_stationarity(ts_data['ActAmt'])
+        is_stationary = stationarity_results['p-value'] < 0.05
+        
+        # ===== IN-SAMPLE FORECASTING (Backtesting) =====
+        train_size = len(ts_data) - test_size
+        train, test = ts_data['ActAmt'][0:train_size], ts_data['ActAmt'][train_size:len(ts_data)]
+        
+        history = [x for x in train]
+        in_sample_predictions = []
+        
+        for t in range(len(test)):
+            model = ARIMA(history, order=arima_order)
+            model_fit = model.fit()
+            output = model_fit.forecast(steps=1)
+            yhat = float(output[0])
+            in_sample_predictions.append(yhat)
+            history.append(test.iloc[t])
+        
+        # Calculate error metrics
+        mse = mean_squared_error(test[:len(in_sample_predictions)], in_sample_predictions)
+        rmse = math.sqrt(mse)
+        mae = mean_absolute_error(test[:len(in_sample_predictions)], in_sample_predictions)
+        
+        # ===== OUT-OF-SAMPLE FORECASTING (Future Prediction) =====
+        # Train final model on all historical data
+        model = ARIMA(ts_data['ActAmt'], order=arima_order)
+        model_fit = model.fit()
+        
+        # Generate future dates (using weeks like in notebook)
+        future_dates = [ts_data.index[-1] + DateOffset(weeks=x) for x in range(1, forecast_periods+1)]
+        out_sample_predictions = []
+        
+        history_forecast = [x for x in ts_data['ActAmt']]
+        for t in range(forecast_periods):
+            model_temp = ARIMA(history_forecast, order=arima_order)
+            model_fit_temp = model_temp.fit()
+            output = model_fit_temp.forecast(steps=1)
+            forecast_value = float(output[0])
+            out_sample_predictions.append(forecast_value)
+            history_forecast.append(forecast_value)
+        
+        # Create output dataframes
+        historical_df = ts_data.reset_index()
+        historical_df.columns = ['Date', 'Actual_Sales']
+        
+        backtest_df = pd.DataFrame({
+            'Date': test.index,
+            'Actual_Sales': test.values,
+            'Predicted_Sales': in_sample_predictions
+        })
+        
+        forecast_df = pd.DataFrame({
+            'Date': future_dates,
+            'Forecasted_Sales': out_sample_predictions
+        })
+        
+        return {
+            'historical': historical_df,
+            'backtest': backtest_df,
+            'forecast': forecast_df,
+            'model': model_fit,
+            'metrics': {
+                'rmse': rmse,
+                'mae': mae
+            },
+            'stationarity': stationarity_results,
+            'is_stationary': is_stationary
+        }
+    except Exception as e:
+        st.error(f"Error in ARIMA forecasting: {str(e)}")
+        return None
+
+def plot_arima_diagnostics(ts_data):
+    """Plot ACF and PACF for time series data (from notebook)."""
+    fig, axes = plt.subplots(2, 1, figsize=(12, 6))
+    
+    # ACF plot
+    plot_acf(ts_data, lags=20, ax=axes[0])
+    axes[0].set_title('Autocorrelation Function (ACF)')
+    
+    # PACF plot
+    plot_pacf(ts_data, lags=20, ax=axes[1])
+    axes[1].set_title('Partial Autocorrelation Function (PACF)')
+    
+    plt.tight_layout()
+    return fig
+
+def plot_seasonal_decomposition(ts_data):
+    """Plot seasonal decomposition (from notebook)."""
+    decomposition = sm.tsa.seasonal_decompose(ts_data, period=12, model='additive')
+    fig = decomposition.plot()
+    fig.set_size_inches(12, 8)
+    return fig
+
+def plot_forecast_comparison(historical_df, backtest_df, forecast_df):
+    """Plot historical, backtest, and forecast data together."""
+    fig = go.Figure()
+    
+    # Historical data
+    fig.add_trace(go.Scatter(
+        x=historical_df['Date'],
+        y=historical_df['Actual_Sales'],
+        mode='lines',
+        name='Historical Sales',
+        line=dict(color='blue', width=2)
+    ))
+    
+    # Backtest predictions
+    fig.add_trace(go.Scatter(
+        x=backtest_df['Date'],
+        y=backtest_df['Predicted_Sales'],
+        mode='lines+markers',
+        name='Backtest Predictions',
+        line=dict(color='orange', width=2, dash='dash')
+    ))
+    
+    # Future forecast
+    fig.add_trace(go.Scatter(
+        x=forecast_df['Date'],
+        y=forecast_df['Forecasted_Sales'],
+        mode='lines+markers',
+        name='Future Forecast',
+        line=dict(color='green', width=2, dash='dot')
+    ))
+    
+    fig.update_layout(
+        title='ARIMA Forecast: Historical, Backtest & Future',
+        xaxis_title='Date',
+        yaxis_title='Sales Amount',
+        hovermode='x unified',
+        template=TEMPLATE,
+        height=500
+    )
+    return fig
+
+def calculate_profit_loss_analysis(forecast_df, historical_df, profit_margin_pct=20, cost_per_unit=None):
+    """
+    Calculate profit/loss projections based on sales forecasts.
+    
+    Parameters:
+    - forecast_df: DataFrame with forecasted sales
+    - historical_df: DataFrame with historical sales for baseline comparison
+    - profit_margin_pct: Expected profit margin percentage (default 20%)
+    - cost_per_unit: Optional cost per unit for detailed analysis
+    
+    Returns:
+    - Dictionary with profit/loss metrics and analysis
+    """
+    # Get historical baseline
+    historical_avg = historical_df['Actual_Sales'].mean()
+    historical_total = historical_df['Actual_Sales'].sum()
+    
+    # Get forecast metrics
+    forecast_total = forecast_df['Forecasted_Sales'].sum()
+    forecast_avg = forecast_df['Forecasted_Sales'].mean()
+    
+    # Calculate growth rate
+    growth_rate = ((forecast_avg - historical_avg) / historical_avg * 100) if historical_avg > 0 else 0
+    
+    # Calculate projected profit (assuming margin)
+    projected_profit = forecast_total * (profit_margin_pct / 100)
+    
+    # Compare to historical period
+    historical_profit = historical_total * (profit_margin_pct / 100)
+    profit_change = projected_profit - historical_profit
+    
+    return {
+        'historical_avg': historical_avg,
+        'historical_total': historical_total,
+        'forecast_avg': forecast_avg,
+        'forecast_total': forecast_total,
+        'growth_rate': growth_rate,
+        'projected_profit': projected_profit,
+        'historical_profit': historical_profit,
+        'profit_change': profit_change,
+        'profit_margin_pct': profit_margin_pct,
+        'health_status': 'Good' if growth_rate > 0 else 'Warning' if growth_rate > -10 else 'Critical'
+    }
+
+def plot_profit_loss_chart(forecast_df, historical_df, profit_margin_pct=20):
+    """Create visualization comparing historical vs forecasted profitability."""
+    # Aggregate by month for better visualization
+    forecast_monthly = forecast_df.copy()
+    forecast_monthly['Profit'] = forecast_monthly['Forecasted_Sales'] * (profit_margin_pct / 100)
+    
+    historical_monthly = historical_df.copy()
+    historical_monthly['Profit'] = historical_monthly['Actual_Sales'] * (profit_margin_pct / 100)
+    
+    # Create figure with secondary y-axis
+    fig = go.Figure()
+    
+    # Historical sales
+    fig.add_trace(go.Scatter(
+        x=historical_monthly['Date'],
+        y=historical_monthly['Actual_Sales'],
+        mode='lines+markers',
+        name='Historical Sales',
+        line=dict(color='blue', width=2),
+        yaxis='y1'
+    ))
+    
+    # Forecasted sales
+    fig.add_trace(go.Scatter(
+        x=forecast_monthly['Date'],
+        y=forecast_monthly['Forecasted_Sales'],
+        mode='lines+markers',
+        name='Forecasted Sales',
+        line=dict(color='green', width=2, dash='dash'),
+        yaxis='y1'
+    ))
+    
+    # Projected profit area
+    fig.add_trace(go.Scatter(
+        x=forecast_monthly['Date'],
+        y=forecast_monthly['Profit'],
+        mode='lines+markers',
+        name=f'Projected Profit ({profit_margin_pct}% margin)',
+        line=dict(color='gold', width=2),
+        fill='tozeroy',
+        yaxis='y2'
+    ))
+    
+    fig.update_layout(
+        title=f'Sales vs Profit Projection (Margin: {profit_margin_pct}%)',
+        xaxis_title='Date',
+        yaxis=dict(title='Sales Amount (₹)', side='left'),
+        yaxis2=dict(title='Profit Amount (₹)', overlaying='y', side='right'),
+        hovermode='x unified',
+        template=TEMPLATE,
+        height=500
+    )
+    return fig
 
 def remove_zero_values(data: pd.DataFrame, value_col: str) -> pd.DataFrame:
     """Remove rows where value column is 0 or empty."""
@@ -208,6 +482,7 @@ menu = {
     "Credit Note Analysis": "credit",
     "Branch Business-Comparison": "branchcomparison",
     "Product Category-Comparison": "productcategorycomparison",
+    "ARIMA Sales Forecasting": "arima",
 }
 
 for title, key in menu.items():
@@ -1644,3 +1919,312 @@ elif st.session_state.page == "productcategorycomparison":
             """,
             unsafe_allow_html=True,
         )
+
+# =====================================================================
+# PAGE 8: ARIMA FORECASTING (from arima.ipynb)
+# =====================================================================
+elif st.session_state.page == "arima":
+    st.header("📈 ARIMA Sales Forecasting")
+    
+    st.markdown("### Overview")
+    st.markdown("""
+    This page uses **ARIMA (AutoRegressive Integrated Moving Average)** modeling to:
+    - Analyze historical sales data for stationarity
+    - Create in-sample forecasts (backtesting) on the last 30 periods
+    - Generate out-of-sample forecasts for the next 48 weeks
+    - Evaluate model performance with RMSE and MAE metrics
+    """)
+    
+    st.divider()
+    
+    # Run ARIMA forecast
+    st.markdown("### Running ARIMA Analysis...")
+    forecast_results = run_arima_forecast(df, arima_order=(2, 1, 2), test_size=30, forecast_periods=48)
+    
+    if forecast_results:
+        # ===== STATIONARITY TEST =====
+        st.markdown("### 1️⃣ Stationarity Test (Augmented Dickey-Fuller)")
+        stat_results = forecast_results['stationarity']
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Test Statistic", f"{stat_results['Test Statistic']:.4f}")
+        with col2:
+            st.metric("p-value", f"{stat_results['p-value']:.4f}")
+        with col3:
+            status = "✅ Stationary" if forecast_results['is_stationary'] else "❌ Non-Stationary"
+            st.markdown(f"<p style='font-size:16px; color:orange;'>{status}</p>", 
+                       unsafe_allow_html=True)
+        
+        st.info(f"**Critical Values**: {', '.join([f'{k}: {v:.4f}' for k, v in stat_results['Critical Values'].items()])}")
+        
+        st.divider()
+        
+        # ===== MODEL SUMMARY =====
+        st.markdown("### 2️⃣ ARIMA Model Summary")
+        model = forecast_results['model']
+        st.text(model.summary())
+        
+        st.divider()
+        
+        # ===== DIAGNOSTIC PLOTS =====
+        st.markdown("### 3️⃣ Time Series Diagnostics (ACF/PACF)")
+        historical_series = forecast_results['historical'].set_index('Date')['Actual_Sales']
+        
+        try:
+            fig_diag = plot_arima_diagnostics(historical_series)
+            st.pyplot(fig_diag)
+        except Exception as e:
+            st.warning(f"Could not generate ACF/PACF plots: {str(e)}")
+        
+        st.divider()
+        
+        # ===== SEASONAL DECOMPOSITION =====
+        st.markdown("### 4️⃣ Seasonal Decomposition")
+        try:
+            fig_decomp = plot_seasonal_decomposition(historical_series)
+            st.pyplot(fig_decomp)
+        except Exception as e:
+            st.warning(f"Could not generate seasonal decomposition: {str(e)}")
+        
+        st.divider()
+        
+        # ===== PERFORMANCE METRICS =====
+        st.markdown("### 5️⃣ In-Sample Forecast Performance (Backtesting)")
+        metrics = forecast_results['metrics']
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("RMSE (Root Mean Squared Error)", f"₹{metrics['rmse']:,.2f}")
+        with col2:
+            st.metric("MAE (Mean Absolute Error)", f"₹{metrics['mae']:,.2f}")
+        
+        # Display backtest data
+        backtest_df = forecast_results['backtest'].copy()
+        backtest_df['Error'] = backtest_df['Actual_Sales'] - backtest_df['Predicted_Sales']
+        backtest_df['Abs_Error'] = backtest_df['Error'].abs()
+        backtest_df['MAPE'] = (backtest_df['Abs_Error'] / backtest_df['Actual_Sales'] * 100).round(2)
+        
+        st.markdown("**Backtest Results (Last 30 periods):**")
+        display_grid_with_export(
+            backtest_df.round(2), 
+            "In-Sample Forecast Results", 
+            "arima_backtest"
+        )
+        
+        st.divider()
+        
+        # ===== FORECAST COMPARISON CHART =====
+        st.markdown("### 6️⃣ Complete Forecast Visualization")
+        fig_forecast = plot_forecast_comparison(
+            forecast_results['historical'],
+            forecast_results['backtest'],
+            forecast_results['forecast']
+        )
+        st.plotly_chart(fig_forecast, use_container_width=True)
+        
+        st.divider()
+        
+        # ===== FUTURE FORECASTS =====
+        st.markdown("### 7️⃣ Out-of-Sample Forecast (Next 48 Weeks)")
+        forecast_df = forecast_results['forecast'].copy()
+        forecast_df['Forecasted_Sales'] = forecast_df['Forecasted_Sales'].round(0)
+        
+        display_grid_with_export(
+            forecast_df, 
+            "48-Week Future Sales Forecast", 
+            "arima_forecast"
+        )
+        
+        st.info("""
+        **Key Insights:**
+        - This forecast extends 48 weeks into the future
+        - Uses rolling forecast method (retrains model after each prediction)
+        - ARIMA(2,1,2) parameters: p=2 (AR), d=1 (differencing), q=2 (MA)
+        - Higher RMSE/MAE suggests more volatility in the time series
+        """)
+        
+        st.divider()
+        
+        # ===== PROFIT/LOSS ANALYSIS =====
+        st.markdown("### 💰 Profit & Loss Projection Analysis")
+        st.markdown("**See if future years will be profitable or loss-making based on your sales forecast**")
+        
+        # Get user input for profit margin
+        col1, col2 = st.columns(2)
+        with col1:
+            profit_margin = st.slider(
+                "Expected Profit Margin (%)",
+                min_value=0,
+                max_value=100,
+                value=20,
+                step=5,
+                help="Your expected profit margin on sales. e.g., 20% means ₹20 profit per ₹100 sales"
+            )
+        with col2:
+            st.metric("Margin Used", f"{profit_margin}%")
+        
+        # Calculate profit/loss analysis
+        pl_analysis = calculate_profit_loss_analysis(
+            forecast_results['forecast'],
+            forecast_results['historical'],
+            profit_margin_pct=profit_margin
+        )
+        
+        # Display KPI metrics
+        st.markdown("**📊 Profit/Loss Comparison:**")
+        metric_cols = st.columns(4)
+        
+        with metric_cols[0]:
+            st.metric(
+                "Historical Profit",
+                f"₹{pl_analysis['historical_profit']:,.0f}",
+                delta=None
+            )
+        
+        with metric_cols[1]:
+            st.metric(
+                "Projected Profit",
+                f"₹{pl_analysis['projected_profit']:,.0f}",
+                delta=f"₹{pl_analysis['profit_change']:,.0f}",
+                delta_color="off"
+            )
+        
+        with metric_cols[2]:
+            color = "🟢" if pl_analysis['growth_rate'] >= 0 else "🔴"
+            st.metric(
+                "Growth Rate",
+                f"{pl_analysis['growth_rate']:.1f}%",
+                delta="Positive" if pl_analysis['growth_rate'] >= 0 else "Negative",
+                delta_color="normal" if pl_analysis['growth_rate'] >= 0 else "inverse"
+            )
+        
+        with metric_cols[3]:
+            health_color = "🟢" if pl_analysis['health_status'] == "Good" else "🟡" if pl_analysis['health_status'] == "Warning" else "🔴"
+            st.markdown(f"<div style='text-align:center'><h4>{health_color} {pl_analysis['health_status']}</h4></div>", 
+                       unsafe_allow_html=True)
+        
+        # Display interpretation
+        st.markdown("**📌 What This Means:**")
+        if pl_analysis['growth_rate'] > 10:
+            st.success(f"""
+            ✅ **EXCELLENT OUTLOOK**: Sales are forecasted to grow by {pl_analysis['growth_rate']:.1f}%!
+            - Your projected profit will increase by ₹{pl_analysis['profit_change']:,.0f}
+            - This translates to strong business momentum
+            - Expected future profit: ₹{pl_analysis['projected_profit']:,.0f}
+            """)
+        elif pl_analysis['growth_rate'] > 0:
+            st.success(f"""
+            ✅ **POSITIVE OUTLOOK**: Sales are forecasted to grow by {pl_analysis['growth_rate']:.1f}%
+            - Your projected profit will increase by ₹{pl_analysis['profit_change']:,.0f}
+            - Steady growth indicates healthy business trajectory
+            - Expected future profit: ₹{pl_analysis['projected_profit']:,.0f}
+            """)
+        elif pl_analysis['growth_rate'] > -10:
+            st.warning(f"""
+            ⚠️ **CAUTION**: Sales are forecasted to decline slightly by {abs(pl_analysis['growth_rate']):.1f}%
+            - Profit may decrease by ₹{abs(pl_analysis['profit_change']):,.0f}
+            - Monitor market trends and consider strategies to boost sales
+            - Expected future profit: ₹{pl_analysis['projected_profit']:,.0f}
+            """)
+        else:
+            st.error(f"""
+            ❌ **CRITICAL ALERT**: Sales are forecasted to decline significantly by {abs(pl_analysis['growth_rate']):.1f}%!
+            - Profit loss of ₹{abs(pl_analysis['profit_change']):,.0f} is projected
+            - Immediate action required to reverse the trend
+            - Expected future profit: ₹{pl_analysis['projected_profit']:,.0f}
+            - Consider: cost reduction, market expansion, product innovation
+            """)
+        
+        # Profit/Loss visualization
+        st.markdown("**📈 Visual Comparison:**")
+        fig_pl = plot_profit_loss_chart(
+            forecast_results['forecast'],
+            forecast_results['historical'],
+            profit_margin_pct=profit_margin
+        )
+        st.plotly_chart(fig_pl, use_container_width=True)
+        
+        # Detailed profit/loss table
+        st.markdown("**📋 Weekly Profit Projection Details:**")
+        detailed_pl = forecast_results['forecast'].copy()
+        detailed_pl['Forecasted_Profit'] = detailed_pl['Forecasted_Sales'] * (profit_margin / 100)
+        detailed_pl['Weekly_Status'] = detailed_pl['Forecasted_Profit'].apply(
+            lambda x: '✅ Profit' if x > 0 else '❌ Loss'
+        )
+        detailed_pl = detailed_pl[['Date', 'Forecasted_Sales', 'Forecasted_Profit', 'Weekly_Status']]
+        detailed_pl.columns = ['Date', 'Sales (₹)', 'Profit (₹)', 'Status']
+        detailed_pl['Sales (₹)'] = detailed_pl['Sales (₹)'].round(0)
+        detailed_pl['Profit (₹)'] = detailed_pl['Profit (₹)'].round(0)
+        
+        display_grid_with_export(
+            detailed_pl,
+            "Weekly Profit/Loss Projection",
+            "arima_profit_loss"
+        )
+        
+        st.divider()
+        
+        # ===== INTERPRETATION GUIDE =====
+        st.markdown("### 📚 How to Interpret Results")
+        
+        with st.expander("📖 Understanding ACF/PACF Plots"):
+            st.markdown("""
+            - **ACF (Autocorrelation)**: Shows correlation between observations at different lags
+              - Slow decay = likely non-stationary
+              - Sharp cutoff = indicates MA order
+            
+            - **PACF (Partial Autocorrelation)**: Shows correlation with specific lags
+              - Sharp cutoff = indicates AR order
+              - Number of significant spikes = suggests p or q parameters
+            """)
+        
+        with st.expander("📊 Understanding Seasonal Decomposition"):
+            st.markdown("""
+            The decomposition breaks down the time series into:
+            - **Trend**: Long-term direction (upward/downward)
+            - **Seasonal**: Repeating patterns (12-month cycles for monthly data)
+            - **Residual**: Random noise/unexplained variation
+            """)
+        
+        with st.expander("⚙️ ARIMA Model Parameters"):
+            st.markdown("""
+            **ARIMA(p, d, q) = (2, 1, 2)**:
+            - **p=2**: Uses up to 2 past values to predict future (AutoRegressive)
+            - **d=1**: Differencing applied once to make series stationary
+            - **q=2**: Moving average smooths error terms using 2 past residuals
+            
+            These parameters were optimized from notebook analysis.
+            """)
+        
+        with st.expander("💰 Understanding Profit/Loss Projections"):
+            st.markdown("""
+            ### How to Interpret Your Profit/Loss Analysis:
+            
+            **Growth Rate:**
+            - **Positive (>0%)**: Sales are growing → More profit likely
+            - **Flat (0%)**: Sales stable → Profit remains same
+            - **Negative (<0%)**: Sales declining → Profit decreases
+            
+            **Profit Margin:**
+            - Set based on your industry/costs
+            - Medicine typically has 15-30% margins
+            - Formula: **Profit = Sales × (Margin % / 100)**
+            
+            **Health Status:**
+            - 🟢 **Good**: Growth > 0% (expanding business)
+            - 🟡 **Warning**: -10% < Growth < 0% (slight decline, monitor)
+            - 🔴 **Critical**: Growth < -10% (significant decline, action needed)
+            
+            **What to Do Based on Outlook:**
+            - ✅ **Growth**: Expand capacity, invest more, increase inventory
+            - ⚠️ **Decline**: Cut costs, improve marketing, find new markets
+            - ❌ **Crisis**: Urgent action - restructure, pivot, or consider partnerships
+            
+            **Key Metrics:**
+            - **Historical Profit**: What you earned in the past period
+            - **Projected Profit**: Expected future earnings
+            - **Profit Change**: Difference (positive/negative)
+            """)
+    else:
+        st.error("Failed to run ARIMA forecast. Check your data and try again.")
